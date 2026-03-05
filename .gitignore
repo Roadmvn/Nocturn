@@ -1,0 +1,8 @@
+server.log
+*.key
+*.pem
+*.p12
+*.pfx
+# Optionnel: ignorer les certificats si privés/self-signed
+#*.crt
+

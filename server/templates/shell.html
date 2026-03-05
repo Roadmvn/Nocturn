@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shell Persistant - {{ agent_id }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #1a1a2e;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container { max-width: 1000px; margin: 0 auto; }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .agent-info { display: flex; align-items: center; gap: 15px; }
+
+        .agent-badge {
+            background: linear-gradient(135deg, #e65c00, #f9d423);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .shell-label { color: #f9d423; font-size: 0.9em; font-family: monospace; }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            background: #f9d423;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+            box-shadow: 0 0 10px #f9d423;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: 0.5; }
+        }
+
+        .close-btn {
+            background: #f44336;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .close-btn:hover { background: #d32f2f; }
+
+        .terminal-window {
+            background: #0c0c0c;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            border: 1px solid #f9d42330;
+        }
+
+        .terminal-titlebar {
+            background: #2d2d2d;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .terminal-buttons { display: flex; gap: 8px; }
+
+        .terminal-btn { width: 14px; height: 14px; border-radius: 50%; }
+        .btn-close    { background: #ff5f57; }
+        .btn-minimize { background: #ffbd2e; }
+        .btn-maximize { background: #28ca41; }
+
+        .terminal-title {
+            color: #f9d423;
+            font-size: 13px;
+            font-family: monospace;
+            font-weight: bold;
+        }
+
+        .terminal-tabs { display: flex; gap: 5px; }
+
+        .terminal-tab {
+            background: #3a2800;
+            color: #f9d423;
+            padding: 5px 15px;
+            border-radius: 6px 6px 0 0;
+            font-size: 12px;
+            border: 1px solid #f9d42350;
+        }
+
+        .terminal-tab.active { background: #0c0c0c; }
+
+        /* Terminal body */
+        .terminal-body {
+            height: 480px;
+            overflow-y: auto;
+            cursor: text;
+        }
+
+        .terminal-body::-webkit-scrollbar { width: 10px; }
+        .terminal-body::-webkit-scrollbar-track { background: #1e1e1e; }
+        .terminal-body::-webkit-scrollbar-thumb { background: #4a4a4a; border-radius: 5px; }
+
+        .terminal-content {
+            padding: 15px;
+            font-family: 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* ── Lignes terminal ── */
+        .t-line {
+            white-space: nowrap;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+
+        .t-line:first-child { margin-top: 0; }
+
+        .t-prompt { color: #f9d423; }
+        .t-cmd    { color: #ff9800; }
+        .t-input  { color: #ff9800; }
+
+        .t-output {
+            color: #b5b5b5;
+            white-space: pre-wrap;
+            word-break: break-word;
+            margin-top: 2px;
+            margin-bottom: 10px;
+        }
+
+        .t-output.error { color: #f44336; }
+        .t-output.wait  { color: #555; }
+
+        .t-cursor {
+            display: inline-block;
+            width: 8px;
+            height: 14px;
+            background: #f9d423;
+            animation: blink 1s step-end infinite;
+            vertical-align: text-bottom;
+            margin-left: 1px;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: 0; }
+        }
+
+        /* Input caché */
+        #hidden-input {
+            position: fixed;
+            left: -9999px;
+            top: -9999px;
+            width: 0;
+            height: 0;
+            opacity: 0;
+            border: none;
+            outline: none;
+        }
+
+        /* Quick bar */
+        .quick-bar {
+            background: #252520;
+            padding: 10px 15px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .quick-label { color: #888; font-size: 12px; }
+
+        .quick-cmd {
+            background: #3a3a20;
+            color: #f9d423;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-family: monospace;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            user-select: none;
+        }
+
+        .quick-cmd:hover { background: #4a4a30; border-color: #f9d423; }
+
+        .close-shell-btn {
+            background: #3a1010;
+            color: #f44336;
+            padding: 5px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-family: monospace;
+            border: 1px solid #f4433650;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .close-shell-btn:hover { background: #4a1515; border-color: #f44336; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="agent-info">
+                <div class="status-dot"></div>
+                <div class="agent-badge">Shell Persistant</div>
+                <span class="shell-label">{{ agent_id }}</span>
+            </div>
+            <button class="close-btn" onclick="window.close()">Fermer</button>
+        </div>
+
+        <div class="quick-bar">
+            <span class="quick-label">Quick:</span>
+            <span class="quick-cmd" onclick="setCmd('whoami')">whoami</span>
+            <span class="quick-cmd" onclick="setCmd('dir')">dir</span>
+            <span class="quick-cmd" onclick="setCmd('ipconfig')">ipconfig</span>
+            <span class="quick-cmd" onclick="setCmd('tasklist')">tasklist</span>
+            <span class="quick-cmd" onclick="setCmd('net user')">net user</span>
+            <span class="quick-cmd" onclick="setCmd('set')">set</span>
+            <span class="quick-cmd" onclick="setCmd('set TEST_VAR=Bonjour')">set TEST_VAR=Bonjour</span>
+            <span class="quick-cmd" onclick="setCmd('echo %TEST_VAR%')">echo %TEST_VAR%</span>
+            <span class="close-shell-btn" onclick="closeShell()">shell_close</span>
+        </div>
+
+        <div class="terminal-window">
+            <div class="terminal-titlebar">
+                <div class="terminal-buttons">
+                    <div class="terminal-btn btn-close"></div>
+                    <div class="terminal-btn btn-minimize"></div>
+                    <div class="terminal-btn btn-maximize"></div>
+                </div>
+                <div class="terminal-title" id="terminal-title">Shell Persistant — {{ agent_id }}</div>
+                <div class="terminal-tabs">
+                    <div class="terminal-tab active"><span>shell persistant</span></div>
+                </div>
+            </div>
+
+            <div class="terminal-body" id="terminal">
+                <div class="terminal-content" id="content">
+{%- for item in history %}
+<div class="t-line"><span class="t-prompt">shell&gt; </span><span class="t-cmd">{{ item.command }}</span></div><div class="t-output">{{ item.output }}</div>
+{%- endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Input caché : capte la saisie sans être visible -->
+    <input type="text" id="hidden-input"
+           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+
+    <script>
+        const AGENT_ID = '{{ agent_id }}';
+        const terminal = document.getElementById('terminal');
+        const content  = document.getElementById('content');
+        const inp      = document.getElementById('hidden-input');
+
+        let currentDir   = {{ current_dir | tojson }};
+        let cmdHistory   = {{ history | map(attribute='command') | list | tojson }};
+        cmdHistory.reverse(); // plus récent en premier pour ArrowUp
+        let historyIndex = -1;
+
+        /* ── Échappement HTML ── */
+        function esc(s) {
+            const d = document.createElement('div');
+            d.textContent = s;
+            return d.innerHTML;
+        }
+
+        function scrollToBottom() {
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        /* ── Nouveau prompt ── */
+        function newPrompt() {
+            const line = document.createElement('div');
+            line.className = 't-line';
+            line.id = 'cur';
+            line.innerHTML =
+                `<span class="t-prompt">${esc(currentDir)}&gt; </span>` +
+                `<span class="t-input" id="cur-text"></span>` +
+                `<span class="t-cursor"></span>`;
+            content.appendChild(line);
+            inp.value = '';
+            scrollToBottom();
+        }
+
+        /* ── Miroir input → span visible ── */
+        function sync() {
+            const s = document.getElementById('cur-text');
+            if (s) s.textContent = inp.value;
+        }
+
+        inp.addEventListener('input', sync);
+
+        inp.addEventListener('keydown', async (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const cmd = inp.value.trim();
+                if (!cmd) return;
+                await submitCommand(cmd);
+
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (historyIndex < cmdHistory.length - 1) {
+                    historyIndex++;
+                    inp.value = cmdHistory[historyIndex];
+                    sync();
+                }
+
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    inp.value = cmdHistory[historyIndex];
+                } else {
+                    historyIndex = -1;
+                    inp.value = '';
+                }
+                sync();
+            }
+        });
+
+        /* ── Envoi de commande ── */
+        async function submitCommand(cmd) {
+            /* 1. Figer la ligne courante */
+            const line = document.getElementById('cur');
+            if (line) {
+                line.removeAttribute('id');
+                line.querySelector('.t-cursor')?.remove();
+                const s = line.querySelector('#cur-text');
+                if (s) { s.removeAttribute('id'); s.textContent = cmd; }
+            }
+            cmdHistory.unshift(cmd);
+            historyIndex = -1;
+
+            /* 2. Indicateur d'attente */
+            const wait = document.createElement('div');
+            wait.className = 't-output wait';
+            wait.textContent = '...';
+            content.appendChild(wait);
+            scrollToBottom();
+
+            try {
+                const fd = new FormData();
+                fd.append('command', cmd);
+                const resp = await fetch(`/${AGENT_ID}/shell/execute`, {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    body: fd
+                });
+                const data = await resp.json();
+                wait.remove();
+
+                /* 3. Sortie */
+                const out = document.createElement('div');
+                out.className = 't-output';
+                out.textContent = data.output || '';
+                content.appendChild(out);
+
+                /* 4. Mise à jour du répertoire */
+                if (data.cwd) {
+                    currentDir = data.cwd;
+                    document.getElementById('terminal-title').textContent =
+                        `Shell Persistant — ${currentDir}`;
+                }
+
+            } catch (err) {
+                wait.remove();
+                const e2 = document.createElement('div');
+                e2.className = 't-output error';
+                e2.textContent = 'Erreur de connexion';
+                content.appendChild(e2);
+            }
+
+            /* 5. Nouveau prompt */
+            newPrompt();
+            inp.focus();
+        }
+
+        /* ── Utilitaires ── */
+        function setCmd(cmd) {
+            inp.value = cmd;
+            sync();
+            inp.focus();
+            scrollToBottom();
+        }
+
+        async function closeShell() {
+            await submitCommand('shell_close');
+        }
+
+        terminal.addEventListener('click', () => { inp.focus(); scrollToBottom(); });
+
+        window.onload = function() {
+            newPrompt();
+            scrollToBottom();
+            inp.focus();
+        };
+    </script>
+</body>
+</html>

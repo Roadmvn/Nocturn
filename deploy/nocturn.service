@@ -1,0 +1,16 @@
+[Unit]
+Description=Nocturn C2 Framework
+After=network.target
+
+[Service]
+User=debian
+WorkingDirectory=/opt/Nocturn/server
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+ExecStart=/usr/bin/python3 controller.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

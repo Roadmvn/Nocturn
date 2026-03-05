@@ -1,0 +1,170 @@
+┌─────────────────────────────────────────────────────────────┐
+│  ÉTAPE 1 : Code utilisateur (inject.go)                    │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  var baseAddr uintptr                                       │
+│  regionSize := uintptr(0x1000)                              │
+│  hProcess := uintptr(0xFFFFFFFFFFFFFFFF)                    │
+│                                                             │
+│  ach.Syscall(                                               │
+│      ach.HashString("NtAllocateVirtualMemory"),             │
+│      hProcess,                     // arg1                  │
+│      uintptr(&baseAddr),           // arg2                  │
+│      0,                            // arg3                  │
+│      uintptr(&regionSize),         // arg4                  │
+│      MEM_COMMIT|MEM_RESERVE,       // arg5                  │
+│      PAGE_READWRITE,               // arg6                  │
+│  )                                                          │
+│                                                             │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│  ÉTAPE 2 : Acheron (acheron.go)                             │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  func (a *Acheron) Syscall(hash uint32, args ...uintptr) { │
+│                                                             │
+│      // 1. Résoudre le hash                                │
+│      funcName := "NtAllocateVirtualMemory"                  │
+│                                                             │
+│      // 2. Récupérer le SSN                                │
+│      ssn := a.ssnMap[funcName]  // = 0x0018                │
+│                                                             │
+│      // 3. Choisir un gadget aléatoire                     │
+│      gadget := a.gadgets[rand()]  // = 0x7FF8B2AD3432      │
+│                                                             │
+│      // 4. APPELER le fichier ASM ▼▼▼                      │
+│      result := execIndirectSyscall(                         │
+│          ssn,      // 0x0018                                │
+│          gadget,   // 0x7FF8B2AD3432                        │
+│          args...,  // [hProcess, &baseAddr, 0, ...]        │
+│      )                                                      │
+│                                                             │
+│      return result                                          │
+│  }                                                          │
+│                                                             │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+                           │ ARGUMENTS PASSÉS :
+                           │ ├─ ssn = 0x0018
+                           │ ├─ gadget = 0x7FF8B2AD3432
+                           │ └─ args = [0xFFFF..., &baseAddr, ...]
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│  ÉTAPE 3 : Assembleur (syscall_amd64.s)                    │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  TEXT ·execIndirectSyscall(SB),NOSPLIT, $0-40              │
+│                                                             │
+│      // ═══════════════════════════════════════════════    │
+│      // RÉCEPTION DES ARGUMENTS D'ACHERON                  │
+│      // ═══════════════════════════════════════════════    │
+│                                                             │
+│      // Argument 1 : SSN (vient d'Acheron)                 │
+│      XORQ    AX, AX                                         │
+│      MOVW    ssn+0(FP), AX      ← RAX = 0x0018 ✅          │
+│                                                             │
+│      // Argument 2 : Adresse du gadget (vient d'Acheron)   │
+│      XORQ    R11, R11                                       │
+│      MOVQ    trampoline+8(FP), R11  ← R11 = 0x7FF8...32 ✅ │
+│                                                             │
+│      // Argument 3 : Arguments variables (vient d'Acheron) │
+│      MOVQ    argh_base+16(FP), SI   ← Pointeur tableau ✅  │
+│      MOVQ    argh_len+24(FP), CX    ← Nombre d'args ✅     │
+│                                                             │
+│      // ═══════════════════════════════════════════════    │
+│      // PRÉPARATION DES REGISTRES CPU                      │
+│      // ═══════════════════════════════════════════════    │
+│                                                             │
+│      // Charger les 4 premiers args dans registres         │
+│      MOVQ    0(SI), CX       ← RCX = hProcess              │
+│      MOVQ    8(SI), DX       ← RDX = &baseAddr             │
+│      MOVQ    16(SI), R8      ← R8  = 0                     │
+│      MOVQ    24(SI), R9      ← R9  = &regionSize           │
+│                                                             │
+│      // Convention syscall Windows                         │
+│      MOVQ    CX, R10         ← R10 = hProcess              │
+│                                                             │
+│      // ═══════════════════════════════════════════════    │
+│      // EXÉCUTION DU SYSCALL INDIRECT                      │
+│      // ═══════════════════════════════════════════════    │
+│                                                             │
+│  jumpcall:                                                  │
+│      CALL    R11  ← Saute vers le gadget ! 🚀              │
+│                                                             │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+                           │ À ce moment :
+                           │ ├─ RAX = 0x0018 (SSN)
+                           │ ├─ R10 = hProcess
+                           │ ├─ RDX = &baseAddr
+                           │ ├─ R8  = 0
+                           │ └─ R9  = &regionSize
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│  ÉTAPE 4 : Gadget propre @ 0x7FF8B2AD3432                  │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  0x7FF8B2AD3432:  0F 05    syscall  ← Transition kernel    │
+│  0x7FF8B2AD3434:  C3       ret      ← Retour               │
+│                                                             │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│  ÉTAPE 5 : Kernel Windows                                  │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Le kernel reçoit :                                         │
+│  ├─ RAX = 0x18 → "Ah, c'est NtAllocateVirtualMemory"       │
+│  ├─ R10 = hProcess                                          │
+│  ├─ RDX = &baseAddr                                         │
+│  └─ R8, R9, Stack = autres args                            │
+│                                                             │
+│  Exécute NtAllocateVirtualMemory()                          │
+│  Alloue la mémoire                                          │
+│  Retourne NTSTATUS dans RAX (0x00000000 si succès)         │
+│                                                             │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│  RETOUR : Assembleur récupère le résultat                  │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│      // Le gadget fait 'ret', on revient ici               │
+│      ADDQ    $(maxargs*8), SP    // Nettoyer stack         │
+│      POPQ    CX                  // Restaurer RCX          │
+│      MOVL    AX, ret+40(FP)      // RAX → Retour Go ✅     │
+│      RET                         // Retour à Acheron       │
+│                                                             │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│  RETOUR : Acheron reçoit le résultat                       │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  result := execIndirectSyscall(...)                         │
+│  // result = 0x00000000 (STATUS_SUCCESS)                   │
+│                                                             │
+│  return result, nil                                         │
+│                                                             │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│  RETOUR : Code utilisateur vérifie                         │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  retCode, err := ach.Syscall(...)                           │
+│                                                             │
+│  if retCode == 0 {                                          │
+│      fmt.Println("✅ Mémoire allouée avec succès !")        │
+│      fmt.Printf("Adresse : 0x%X\n", baseAddr)              │
+│  }                                                          │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
