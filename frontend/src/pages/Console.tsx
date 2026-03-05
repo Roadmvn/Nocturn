@@ -7,6 +7,7 @@ interface HistoryEntry {
   output: string
   cwd: string
   time: string
+  isError?: boolean
 }
 
 const QUICK_COMMANDS = [
@@ -48,6 +49,8 @@ export default function Console() {
     }
   }, [history])
 
+  const clearTerminal = () => setHistory([])
+
   const sendCommand = async (cmd?: string) => {
     const toSend = (cmd || command).trim()
     if (!toSend || loading) return
@@ -64,6 +67,7 @@ export default function Console() {
         output: res.data.output,
         cwd: res.data.cwd || currentCwd,
         time: new Date().toLocaleTimeString(),
+        isError: false,
       }])
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { error?: string } } }
@@ -72,6 +76,7 @@ export default function Console() {
         output: axiosErr.response?.data?.error || 'Erreur de communication',
         cwd: currentCwd,
         time: new Date().toLocaleTimeString(),
+        isError: true,
       }])
     } finally {
       setLoading(false)
@@ -114,7 +119,7 @@ export default function Console() {
           >
             ← Dashboard
           </button>
-          <span className="text-sm font-bold tracking-widest" style={{ color: '#a78bfa' }}>
+          <span className="text-sm font-bold tracking-widest text-glow-purple" style={{ color: '#a78bfa' }}>
             NOCTURN
           </span>
           <span className="text-xs" style={{ color: 'var(--text-muted)' }}>/</span>
@@ -125,6 +130,18 @@ export default function Console() {
             style={{ background: '#0d0d0d', color: '#a78bfa', border: '1px solid var(--border)' }}>
             {currentCwd}
           </span>
+          <button
+            onClick={clearTerminal}
+            className="text-xs px-3 py-1.5 rounded transition-all"
+            style={{
+              background: 'rgba(239,68,68,0.1)',
+              color: '#f87171',
+              border: '1px solid rgba(239,68,68,0.2)',
+            }}
+            title="Effacer le terminal"
+          >
+            Clear
+          </button>
           {loading && (
             <span className="text-xs px-2 py-1 rounded animate-pulse"
               style={{ background: 'rgba(124,58,237,0.2)', color: '#a78bfa' }}>
@@ -149,7 +166,10 @@ export default function Console() {
               key={i}
               onClick={() => sendCommand(entry.command)}
               className="w-full text-left px-3 py-2 text-xs font-mono truncate transition-all hover:opacity-80"
-              style={{ color: '#a78bfa', borderBottom: '1px solid var(--border)' }}
+              style={{
+                color: entry.isError ? '#f87171' : '#a78bfa',
+                borderBottom: '1px solid var(--border)',
+              }}
               title={entry.command}
             >
               {entry.command}
@@ -190,6 +210,7 @@ export default function Console() {
             {history.length === 0 && (
               <div className="terminal-glow opacity-50" style={{ color: '#00ff41' }}>
                 NOCTURN C2 — Agent {id} connecté. Tape une commande.
+                <span className="cursor-blink ml-1" style={{ color: '#00ff41' }}>█</span>
               </div>
             )}
 
@@ -201,10 +222,13 @@ export default function Console() {
                   <span className="terminal-glow" style={{ color: '#00ff41' }}>{entry.command}</span>
                   <span className="text-xs ml-auto opacity-40" style={{ color: '#64748b' }}>{entry.time}</span>
                 </div>
-                {/* Output */}
+                {/* Output — rouge si erreur, vert si succès */}
                 <pre
                   className="mt-1 ml-4 text-xs whitespace-pre-wrap leading-relaxed"
-                  style={{ color: '#e2e8f0' }}
+                  style={{
+                    color: entry.isError ? '#f87171' : '#e2e8f0',
+                    textShadow: entry.isError ? '0 0 6px rgba(248,113,113,0.4)' : 'none',
+                  }}
                 >
                   {entry.output}
                 </pre>
@@ -212,9 +236,9 @@ export default function Console() {
             ))}
 
             {loading && (
-              <div className="flex items-center gap-2 animate-pulse">
+              <div className="flex items-center gap-2">
                 <span style={{ color: '#a78bfa' }}>{currentCwd}&gt;</span>
-                <span style={{ color: '#00ff41' }}>█</span>
+                <span className="cursor-blink" style={{ color: '#00ff41' }}>█</span>
               </div>
             )}
           </div>
@@ -239,6 +263,9 @@ export default function Console() {
               style={{ color: '#00ff41' }}
               autoFocus
             />
+            {!loading && (
+              <span className="cursor-blink font-mono text-sm" style={{ color: '#00ff41' }}>█</span>
+            )}
           </div>
         </div>
       </div>

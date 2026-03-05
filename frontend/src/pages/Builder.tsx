@@ -1,11 +1,10 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import api from '../lib/api'
+import Navbar from '../components/Navbar'
 
 type BuildStatus = 'idle' | 'building' | 'success' | 'error'
 
 export default function Builder() {
-  const navigate = useNavigate()
   const [serverHost, setServerHost] = useState('nocturn.roadmvn.com')
   const [serverPort, setServerPort] = useState(1234)
   const [agentId, setAgentId] = useState('agent-001')
@@ -53,33 +52,24 @@ export default function Builder() {
     }
   }
 
+  const buildCommand = [
+    `x86_64-w64-mingw32-gcc agent.c \\`,
+    `  -DSERVER_HOST=\\"${serverHost}\\" \\`,
+    `  -DSERVER_PORT=${serverPort} \\`,
+    `  -DAGENT_ID=\\"${agentId}\\" \\`,
+    `  -DDELAY_MS=${delayMs} \\`,
+    `  -o nocturn-${agentId}.exe \\`,
+    `  -static -lws2_32 -lwinhttp`,
+  ].join('\n')
+
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
-      {/* Header */}
-      <header
-        className="border-b px-6 py-3 flex items-center gap-3"
-        style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border)' }}
-      >
-        <button
-          onClick={() => navigate('/')}
-          className="text-sm px-3 py-1.5 rounded"
-          style={{ color: 'var(--text-muted)', background: 'var(--bg-card)' }}
-        >
-          ← Dashboard
-        </button>
-        <span className="text-sm font-bold tracking-widest" style={{ color: '#a78bfa' }}>
-          NOCTURN
-        </span>
-        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>/</span>
-        <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-          Agent Builder
-        </span>
-      </header>
+      <Navbar />
 
       <main className="max-w-2xl mx-auto px-6 py-10">
         <div className="mb-8">
           <h1 className="text-2xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
-            ⚙ Générer un agent
+            Générer un agent
           </h1>
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
             Configure et compile l'agent Windows. Le binaire sera téléchargé automatiquement.
@@ -106,6 +96,8 @@ export default function Builder() {
                 border: '1px solid var(--border)',
                 color: '#a78bfa',
               }}
+              onFocus={(e) => e.target.style.borderColor = '#7c3aed'}
+              onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
             />
             <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
               IP ou domaine que l'agent devra contacter
@@ -127,6 +119,8 @@ export default function Builder() {
                 border: '1px solid var(--border)',
                 color: '#a78bfa',
               }}
+              onFocus={(e) => e.target.style.borderColor = '#7c3aed'}
+              onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
             />
           </div>
 
@@ -146,6 +140,8 @@ export default function Builder() {
                 border: '1px solid var(--border)',
                 color: '#a78bfa',
               }}
+              onFocus={(e) => e.target.style.borderColor = '#7c3aed'}
+              onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
             />
             <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
               Identifiant unique pour cet agent (ex: agent-001, agent-lab)
@@ -172,7 +168,7 @@ export default function Builder() {
             </div>
           </div>
 
-          {/* Résumé config */}
+          {/* Config defines preview */}
           <div
             className="rounded-lg p-4 font-mono text-xs"
             style={{ background: '#0d0d0d', border: '1px solid var(--border)' }}
@@ -182,6 +178,29 @@ export default function Builder() {
             <div><span style={{ color: '#a78bfa' }}>#define</span> <span style={{ color: '#00ff41' }}>SERVER_PORT</span> <span style={{ color: '#fbbf24' }}>{serverPort}</span></div>
             <div><span style={{ color: '#a78bfa' }}>#define</span> <span style={{ color: '#00ff41' }}>AGENT_ID</span> <span style={{ color: '#fbbf24' }}>"{agentId}"</span></div>
             <div><span style={{ color: '#a78bfa' }}>#define</span> <span style={{ color: '#00ff41' }}>DELAY_MS</span> <span style={{ color: '#fbbf24' }}>{delayMs}</span></div>
+          </div>
+
+          {/* Build command preview */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                Commande de compilation
+              </span>
+              <span
+                className="text-xs px-2 py-0.5 rounded font-mono"
+                style={{ background: 'rgba(0,255,65,0.08)', color: '#00ff41', border: '1px solid rgba(0,255,65,0.2)' }}
+              >
+                mingw-w64
+              </span>
+            </div>
+            <div
+              className="rounded-lg p-4 font-mono text-xs overflow-x-auto"
+              style={{ background: '#060606', border: '1px solid rgba(0,255,65,0.15)' }}
+            >
+              <pre className="terminal-glow whitespace-pre" style={{ color: '#00ff41', margin: 0 }}>
+                {buildCommand}
+              </pre>
+            </div>
           </div>
 
           {/* Status */}
@@ -207,7 +226,7 @@ export default function Builder() {
           <button
             onClick={handleBuild}
             disabled={status === 'building'}
-            className="w-full py-3.5 rounded-lg font-semibold text-sm transition-all"
+            className="w-full py-3.5 rounded-lg font-semibold text-sm transition-all glow-purple"
             style={{
               background: status === 'building'
                 ? 'rgba(124,58,237,0.3)'
@@ -216,7 +235,7 @@ export default function Builder() {
               cursor: status === 'building' ? 'not-allowed' : 'pointer',
             }}
           >
-            {status === 'building' ? '⏳ Compilation en cours...' : '⚙ Compiler & Télécharger'}
+            {status === 'building' ? 'Compilation en cours...' : 'Compiler & Télécharger'}
           </button>
 
           <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>

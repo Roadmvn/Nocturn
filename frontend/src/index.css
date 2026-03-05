@@ -26,6 +26,15 @@ body {
   font-family: 'Inter', sans-serif;
   margin: 0;
   padding: 0;
+  cursor: crosshair;
+}
+
+/* Allow default cursor on interactive elements */
+input, textarea, select {
+  cursor: text;
+}
+button, a, [role="button"] {
+  cursor: pointer;
 }
 
 .font-mono {
@@ -52,10 +61,95 @@ body {
   text-shadow: 0 0 8px rgba(0, 255, 65, 0.5);
 }
 
+/* Purple glow on violet elements */
+.glow-purple {
+  box-shadow: 0 0 12px rgba(124, 58, 237, 0.4), 0 0 24px rgba(124, 58, 237, 0.15);
+}
+.text-glow-purple {
+  text-shadow: 0 0 10px rgba(167, 139, 250, 0.6);
+}
+
+/* Scanlines overlay */
+.scanlines {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.08) 2px,
+    rgba(0, 0, 0, 0.08) 4px
+  );
+  animation: scanlines-move 8s linear infinite;
+}
+
+@keyframes scanlines-move {
+  0%   { background-position: 0 0; }
+  100% { background-position: 0 100px; }
+}
+
+/* Subtle scanlines for login page */
+.scanlines-subtle {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(124, 58, 237, 0.02) 3px,
+    rgba(124, 58, 237, 0.02) 4px
+  );
+  animation: scanlines-move 10s linear infinite;
+}
+
+/* Particles / grid background for login */
+.grid-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(124, 58, 237, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124, 58, 237, 0.07) 1px, transparent 1px);
+  background-size: 40px 40px;
+  animation: grid-drift 20s ease-in-out infinite;
+}
+
+@keyframes grid-drift {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* Floating particles */
+@keyframes float-particle {
+  0%   { transform: translateY(0) translateX(0) scale(1); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 0.8; }
+  100% { transform: translateY(-120vh) translateX(30px) scale(0.5); opacity: 0; }
+}
+
+.particle {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #7c3aed;
+  pointer-events: none;
+  animation: float-particle linear infinite;
+}
+
 /* Animations */
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.3; }
+}
+
+@keyframes pulse-ring {
+  0%   { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(2.5); opacity: 0; }
 }
 
 @keyframes fadeIn {
@@ -65,4 +159,20 @@ body {
 
 .fade-in {
   animation: fadeIn 0.3s ease forwards;
+}
+
+/* Blinking cursor for terminal */
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.cursor-blink {
+  display: inline-block;
+  animation: cursor-blink 1s step-end infinite;
+}
+
+/* Glow on focused inputs */
+input:focus {
+  box-shadow: 0 0 0 1px #7c3aed, 0 0 8px rgba(124, 58, 237, 0.3);
 }
