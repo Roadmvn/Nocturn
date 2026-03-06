@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
 import api from '../lib/api'
 import Navbar from '../components/Navbar'
 import StatusBadge from '../components/StatusBadge'
+import { useTransitionNavigate } from '../context/TransitionContext'
 
 interface Agent {
   id: string
@@ -11,8 +11,35 @@ interface Agent {
   status: 'online' | 'idle' | 'offline'
 }
 
+function Corner({ pos }: { pos: 'tl' | 'tr' | 'bl' | 'br' }) {
+  const s = 10, t = '1px', c = 'rgba(255,101,0,0.5)'
+  const base: React.CSSProperties = { position: 'absolute', width: s, height: s }
+  const styles: Record<string, React.CSSProperties> = {
+    tl: { top: 0,    left: 0,  borderTop:    `${t} solid ${c}`, borderLeft:   `${t} solid ${c}` },
+    tr: { top: 0,    right: 0, borderTop:    `${t} solid ${c}`, borderRight:  `${t} solid ${c}` },
+    bl: { bottom: 0, left: 0,  borderBottom: `${t} solid ${c}`, borderLeft:   `${t} solid ${c}` },
+    br: { bottom: 0, right: 0, borderBottom: `${t} solid ${c}`, borderRight:  `${t} solid ${c}` },
+  }
+  return <div style={{ ...base, ...styles[pos] }} />
+}
+
+function StatBlock({ label, value, color }: { label: string; value: string | number; color: string }) {
+  return (
+    <div style={{ position: 'relative', padding: '22px 24px', textAlign: 'center', background: 'rgba(8,4,6,0.6)', border: '1px solid rgba(255,101,0,0.08)', borderTop: `2px solid ${color}`, overflow: 'hidden' }}>
+      <Corner pos="tl" /><Corner pos="tr" /><Corner pos="bl" /><Corner pos="br" />
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 40, background: `radial-gradient(ellipse at 50% 0%, ${color}12 0%, transparent 70%)`, pointerEvents: 'none' }} />
+      <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, letterSpacing: '0.2em', color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', margin: '0 0 12px' }}>
+        {label}
+      </p>
+      <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 36, fontWeight: 700, color, margin: 0, textShadow: `0 0 20px ${color}50`, lineHeight: 1 }}>
+        {value}
+      </p>
+    </div>
+  )
+}
+
 export default function Dashboard() {
-  const navigate = useNavigate()
+  const transitionTo = useTransitionNavigate()
   const [agents, setAgents] = useState<Agent[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -35,15 +62,14 @@ export default function Dashboard() {
   }, [fetchAgents])
 
   const formatLastSeen = (seconds: number) => {
-    if (seconds < 60) return `${seconds}s`
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m`
-    return `${Math.floor(seconds / 3600)}h`
+    if (seconds < 60) return `${seconds}s ago`
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
+    return `${Math.floor(seconds / 3600)}h ago`
   }
 
   const activeAgents = agents.filter(a => a.status !== 'offline')
-  const avgConnectionTime = activeAgents.length > 0
-    ? Math.round(activeAgents.reduce((sum, a) => sum + a.last_seen, 0) / activeAgents.length)
-    : 0
+  const onlineAgents = agents.filter(a => a.status === 'online')
+  const idleAgents = agents.filter(a => a.status === 'idle')
 
   const filteredAgents = agents.filter(a =>
     a.id.toLowerCase().includes(search.toLowerCase()) ||
@@ -52,165 +78,251 @@ export default function Dashboard() {
   )
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
+    <div className="page-enter" style={{ minHeight: '100vh', position: 'relative' }}>
+      <div className="app-bg" />
+      <div className="noise-overlay" />
       <Navbar />
 
-      <main className="max-w-6xl mx-auto px-6 py-8">
-        {/* Stats bar */}
-        <div className="flex items-center gap-6 mb-8">
-          <div>
-            <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Agents connectés</p>
-            <p className="text-3xl font-bold text-glow-purple" style={{ color: '#a78bfa' }}>
-              {activeAgents.length}
-              <span className="text-lg ml-1" style={{ color: 'var(--text-muted)' }}>/ {agents.length}</span>
-            </p>
-          </div>
-          <div className="h-12 w-px" style={{ background: 'var(--border)' }} />
-          <div>
-            <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Online</p>
-            <p className="text-3xl font-bold" style={{ color: '#22c55e' }}>
-              {agents.filter(a => a.status === 'online').length}
-            </p>
-          </div>
-          <div className="h-12 w-px" style={{ background: 'var(--border)' }} />
-          <div>
-            <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Idle</p>
-            <p className="text-3xl font-bold" style={{ color: '#f59e0b' }}>
-              {agents.filter(a => a.status === 'idle').length}
-            </p>
-          </div>
-          <div className="h-12 w-px" style={{ background: 'var(--border)' }} />
-          <div>
-            <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Temps moy. connexion</p>
-            <p className="text-3xl font-bold" style={{ color: '#a78bfa' }}>
-              {activeAgents.length > 0 ? formatLastSeen(avgConnectionTime) : '—'}
-            </p>
-          </div>
-          <div className="ml-auto">
-            <button
-              onClick={fetchAgents}
-              className="px-4 py-2 rounded-lg text-sm transition-all"
-              style={{
-                background: 'var(--bg-card)',
-                color: 'var(--text-muted)',
-                border: '1px solid var(--border)',
-              }}
-            >
-              ↻ Rafraîchir
-            </button>
-          </div>
+      {/* ── System status bar ── */}
+      <div style={{ borderBottom: '1px solid rgba(255,101,0,0.08)', background: 'rgba(4,4,6,0.6)', padding: '6px 24px', display: 'flex', alignItems: 'center', gap: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#00ff88', boxShadow: '0 0 6px #00ff88', animation: 'pulse-dot 2s ease-in-out infinite' }} />
+          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.15em' }}>SYS ONLINE</span>
         </div>
+        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'rgba(255,101,0,0.3)', letterSpacing: '0.1em' }}>|</span>
+        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.12em' }}>C2 FRAMEWORK v1.0</span>
+        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'rgba(255,101,0,0.3)', letterSpacing: '0.1em' }}>|</span>
+        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.12em' }}>POLLING 5s</span>
+      </div>
 
-        {/* Search bar */}
-        <div className="mb-6 relative">
-          <span
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-sm"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            ⌕
-          </span>
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Rechercher un agent par ID, répertoire ou statut..."
-            className="w-full pl-10 pr-4 py-3 rounded-xl text-sm outline-none transition-all font-mono"
+      <main style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 24px' }}>
+
+        {/* ── Header row ── */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
+          <div>
+            <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: '#FF6500', letterSpacing: '0.25em', textTransform: 'uppercase', margin: '0 0 6px', opacity: 0.8 }}>
+              // OPERATIONS CENTER
+            </p>
+            <h1 style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 22, fontWeight: 700, color: '#F0F0F0', letterSpacing: '0.15em', margin: '0 0 10px', textTransform: 'uppercase' }}>
+              ACTIVE AGENTS
+            </h1>
+            <div style={{ width: 40, height: 2, background: 'linear-gradient(90deg, #FF6500, transparent)' }} />
+          </div>
+          <button
+            onClick={fetchAgents}
             style={{
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border)',
-              color: 'var(--text-primary)',
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: 10,
+              letterSpacing: '0.15em',
+              padding: '8px 16px',
+              background: 'transparent',
+              border: '1px solid rgba(255,101,0,0.25)',
+              borderRadius: 2,
+              color: 'rgba(255,101,0,0.6)',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              textTransform: 'uppercase',
+              position: 'relative',
+              overflow: 'hidden',
             }}
-            onFocus={(e) => e.target.style.borderColor = '#7c3aed'}
-            onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
-          />
-          {search && (
-            <span
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-xs"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              {filteredAgents.length} résultat{filteredAgents.length !== 1 ? 's' : ''}
-            </span>
-          )}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,101,0,0.08)'; e.currentTarget.style.color = '#FF6500' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,101,0,0.6)' }}
+          >
+            ↻ &nbsp;REFRESH
+          </button>
         </div>
 
-        {/* Agents grid */}
-        {loading ? (
-          <div className="text-center py-20" style={{ color: 'var(--text-muted)' }}>
-            Chargement...
+        {/* ── Stats row ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 32 }}>
+          <StatBlock label="Agents" value={`${activeAgents.length} / ${agents.length}`} color="#FF6500" />
+          <StatBlock label="Online" value={onlineAgents.length} color="#00ff88" />
+          <StatBlock label="Idle" value={idleAgents.length} color="#FF9500" />
+          <StatBlock label="Offline" value={agents.filter(a => a.status === 'offline').length} color="rgba(255,45,85,0.8)" />
+        </div>
+
+        {/* ── Search bar ── */}
+        <div style={{ position: 'relative', marginBottom: 28 }} className="input-group">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'rgba(8,4,6,0.8)', border: '1px solid rgba(255,101,0,0.12)', borderRadius: 2 }}>
+            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: '#FF6500', opacity: 0.5, userSelect: 'none' }}>//</span>
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="search agent by ID, path or status..."
+              style={{
+                flex: 1, background: 'transparent', border: 'none', outline: 'none',
+                fontFamily: "'JetBrains Mono', monospace", fontSize: 12,
+                color: '#F0F0F0', letterSpacing: '0.03em',
+              }}
+              className="login-input"
+            />
+            {search && (
+              <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: 'rgba(255,101,0,0.5)', letterSpacing: '0.1em' }}>
+                {filteredAgents.length} RESULT{filteredAgents.length !== 1 ? 'S' : ''}
+              </span>
+            )}
           </div>
+        </div>
+
+        {/* ── Content ── */}
+        {loading ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
+            {[0, 1, 2].map(i => <SkeletonCard key={i} delay={i * 120} />)}
+          </div>
+
         ) : filteredAgents.length === 0 ? (
-          <div
-            className="text-center py-20 rounded-2xl border"
-            style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}
-          >
-            <div className="text-4xl mb-4">🌑</div>
-            <h3 className="text-lg font-semibold mb-2">
-              {search ? 'Aucun résultat' : 'Aucun agent connecté'}
+          /* Empty state */
+          <div style={{
+            textAlign: 'center', padding: '80px 24px',
+            border: '1px solid rgba(255,101,0,0.08)',
+            borderRadius: 2, background: 'rgba(8,4,6,0.5)',
+            position: 'relative',
+          }}>
+            <Corner pos="tl" /><Corner pos="tr" /><Corner pos="bl" /><Corner pos="br" />
+
+            <div style={{ fontSize: 72, lineHeight: 1, marginBottom: 24, filter: 'grayscale(1) brightness(2) drop-shadow(0 0 18px rgba(255,255,255,0.4))', animation: 'pulse-dot 3s ease-in-out infinite' }}>
+              👾
+            </div>
+            <h3 style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.75)', letterSpacing: '0.2em', textTransform: 'uppercase', margin: '0 0 8px' }}>
+              {search ? 'NO RESULTS' : 'NO AGENTS CONNECTED'}
             </h3>
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              {search ? `Aucun agent ne correspond à "${search}"` : 'En attente de connexions...'}
+            <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', margin: '0 0 28px' }}>
+              {search ? `no match for "${search}"` : '// awaiting connections...'}
             </p>
             {!search && (
               <button
-                onClick={() => navigate('/builder')}
-                className="mt-6 px-6 py-2 rounded-lg text-sm font-medium glow-purple"
+                onClick={() => transitionTo('/builder')}
                 style={{
-                  background: 'linear-gradient(135deg, #7c3aed, #4f46e5)',
-                  color: 'white',
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase',
+                  padding: '10px 24px', background: 'rgba(255,101,0,0.08)',
+                  border: '1px solid rgba(255,101,0,0.4)', borderRadius: 2,
+                  color: '#FF6500', cursor: 'pointer', transition: 'all 0.2s',
                 }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,101,0,0.15)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,101,0,0.08)' }}
               >
-                Générer un agent
+                // DEPLOY AGENT
               </button>
             )}
           </div>
+
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredAgents.map((agent) => (
-              <div
-                key={agent.id}
-                className="rounded-xl p-5 border transition-all fade-in"
-                style={{
-                  background: 'var(--bg-card)',
-                  borderColor: agent.status === 'online' ? 'rgba(124,58,237,0.3)' : 'var(--border)',
-                  boxShadow: agent.status === 'online' ? '0 0 15px rgba(124,58,237,0.08)' : 'none',
-                }}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <span className="font-mono font-bold text-sm" style={{ color: 'var(--text-primary)' }}>
-                    {agent.id}
-                  </span>
-                  <StatusBadge status={agent.status} />
-                </div>
-
-                <div className="space-y-2 mb-4">
-                  <div>
-                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Répertoire</span>
-                    <p className="font-mono text-xs mt-0.5 truncate" style={{ color: '#a78bfa' }}>
-                      {agent.cwd}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                      Dernière activité : {formatLastSeen(agent.last_seen)}
-                    </span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => navigate(`/agent/${agent.id}`)}
-                  className="w-full py-2.5 rounded-lg text-sm font-semibold transition-all glow-purple"
-                  style={{
-                    background: 'linear-gradient(135deg, #7c3aed, #4f46e5)',
-                    color: 'white',
-                  }}
-                >
-                  Contrôler
-                </button>
-              </div>
+          /* Agent grid */
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
+            {filteredAgents.map((agent, i) => (
+              <AgentCard key={agent.id} index={i} agent={agent} onControl={() => transitionTo(`/agent/${agent.id}`)} formatLastSeen={formatLastSeen} />
             ))}
           </div>
         )}
       </main>
+    </div>
+  )
+}
+
+function SkeletonCard({ delay }: { delay: number }) {
+  return (
+    <div style={{
+      background: 'rgba(8,4,6,0.85)',
+      border: '1px solid rgba(255,101,0,0.08)',
+      borderLeft: '3px solid rgba(255,101,0,0.18)',
+      borderRadius: 2, padding: '20px',
+      animation: `skel-shimmer 1.6s ease-in-out ${delay}ms infinite`,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+        <div className="skel" style={{ width: 6, height: 6, borderRadius: '50%', background: 'rgba(255,101,0,0.18)' }} />
+        <div className="skel" style={{ height: 12, width: 140, background: 'rgba(255,101,0,0.12)' }} />
+        <div className="skel" style={{ height: 18, width: 55, background: 'rgba(255,255,255,0.05)', marginLeft: 'auto', animationDelay: '0.15s' }} />
+      </div>
+      <div style={{ marginBottom: 10 }}>
+        <div className="skel" style={{ height: 8, width: 110, background: 'rgba(255,255,255,0.05)', marginBottom: 6, animationDelay: '0.05s' }} />
+        <div className="skel" style={{ height: 11, width: '78%', background: 'rgba(255,255,255,0.07)', animationDelay: '0.1s' }} />
+      </div>
+      <div style={{ marginBottom: 20 }}>
+        <div className="skel" style={{ height: 8, width: 75, background: 'rgba(255,255,255,0.05)', marginBottom: 6, animationDelay: '0.2s' }} />
+        <div className="skel" style={{ height: 11, width: 95, background: 'rgba(255,255,255,0.07)', animationDelay: '0.25s' }} />
+      </div>
+      <div className="skel" style={{ height: 34, width: '100%', background: 'rgba(255,101,0,0.06)', animationDelay: '0.3s' }} />
+    </div>
+  )
+}
+
+function AgentCard({ agent, onControl, formatLastSeen, index }: {
+  agent: { id: string; cwd: string; last_seen: number; status: string }
+  onControl: () => void
+  formatLastSeen: (s: number) => string
+  index: number
+}) {
+  const statusColor = agent.status === 'online' ? '#00ff88' : agent.status === 'idle' ? '#FF9500' : '#FF2D55'
+  const borderColor = agent.status === 'online' ? 'rgba(0,255,136,0.15)' : agent.status === 'idle' ? 'rgba(255,149,0,0.1)' : 'rgba(255,45,85,0.08)'
+
+  return (
+    <div
+      className="card-stagger"
+      style={{
+        animationDelay: `${index * 60}ms`,
+        background: 'rgba(8,4,6,0.85)',
+        border: `1px solid ${borderColor}`,
+        borderLeft: `3px solid ${statusColor}`,
+        borderRadius: 2,
+        padding: '20px',
+        position: 'relative',
+        transition: 'all 0.2s',
+      }}
+      onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,101,0,0.25)'; (e.currentTarget as HTMLDivElement).style.boxShadow = `0 0 24px ${statusColor}10` }}
+      onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = borderColor; (e.currentTarget as HTMLDivElement).style.boxShadow = 'none'; (e.currentTarget as HTMLDivElement).style.borderLeftColor = statusColor }}
+    >
+      <Corner pos="tl" /><Corner pos="tr" /><Corner pos="bl" /><Corner pos="br" />
+
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: statusColor, boxShadow: `0 0 6px ${statusColor}`, flexShrink: 0, animation: agent.status === 'online' ? 'pulse-dot 2s ease-in-out infinite' : 'none' }} />
+          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13, fontWeight: 700, color: '#FF6500', letterSpacing: '0.05em' }}>
+            {agent.id}
+          </span>
+        </div>
+        <StatusBadge status={agent.status as 'online' | 'idle' | 'offline'} />
+      </div>
+
+      {/* Info */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 18 }}>
+        <div>
+          <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, letterSpacing: '0.2em', color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', margin: '0 0 4px' }}>
+            Working Directory
+          </p>
+          <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'rgba(255,101,0,0.7)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {agent.cwd}
+          </p>
+        </div>
+        <div>
+          <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, letterSpacing: '0.2em', color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', margin: '0 0 4px' }}>
+            Last Seen
+          </p>
+          <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'rgba(255,255,255,0.6)', margin: 0 }}>
+            {formatLastSeen(agent.last_seen)}
+          </p>
+        </div>
+      </div>
+
+      {/* Control button */}
+      <button
+        onClick={onControl}
+        style={{
+          width: '100%', padding: '10px 0',
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: 10, letterSpacing: '0.25em', textTransform: 'uppercase',
+          background: 'rgba(255,101,0,0.06)',
+          border: '1px solid rgba(255,101,0,0.35)',
+          borderRadius: 2, color: '#FF6500',
+          cursor: 'pointer', transition: 'all 0.2s',
+          position: 'relative', overflow: 'hidden',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,101,0,0.14)'; e.currentTarget.style.boxShadow = '0 0 14px rgba(255,101,0,0.15)' }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,101,0,0.06)'; e.currentTarget.style.boxShadow = 'none' }}
+      >
+        // CONTROL
+      </button>
     </div>
   )
 }

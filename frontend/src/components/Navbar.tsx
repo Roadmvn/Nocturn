@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import owlLogo from '../assets/owl.png'
+import { useTransitionNavigate } from '../context/TransitionContext'
 
 export default function Navbar() {
   const navigate = useNavigate()
+  const transitionTo = useTransitionNavigate()
   const location = useLocation()
   const [time, setTime] = useState(new Date())
 
@@ -19,73 +22,131 @@ export default function Navbar() {
   const isActive = (path: string) => location.pathname === path
 
   return (
-    <header
-      className="border-b px-6 py-3 flex items-center justify-between shrink-0"
-      style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border)' }}
-    >
+    <header style={{
+      background: 'rgba(4,4,6,0.95)',
+      borderBottom: '1px solid rgba(255,101,0,0.12)',
+      backdropFilter: 'blur(12px)',
+      position: 'sticky',
+      top: 0,
+      zIndex: 1000,
+      padding: '0 24px',
+      height: 56,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    }}>
+
       {/* Left: Logo */}
-      <div className="flex items-center gap-3">
-        <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center glow-purple"
-          style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)' }}
-        >
-          <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" />
-          </svg>
-        </div>
-        <span className="text-lg font-bold tracking-widest text-glow-purple" style={{ color: '#a78bfa' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={() => transitionTo('/')}>
+        <img
+          src={owlLogo}
+          alt="Nocturn"
+          style={{ width: 28, height: 28, objectFit: 'contain', filter: 'drop-shadow(0 0 6px rgba(255,101,0,0.5))' }}
+        />
+        <span style={{
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: 14,
+          fontWeight: 700,
+          letterSpacing: '0.25em',
+          color: '#F0F0F0',
+          textShadow: '0 0 12px rgba(255,101,0,0.3)',
+        }}>
           NOCTURN
         </span>
-        <span className="text-xs px-2 py-1 rounded" style={{ background: '#1e1e2e', color: 'var(--text-muted)' }}>
+        <span style={{
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: 9,
+          letterSpacing: '0.15em',
+          color: '#FF6500',
+          background: 'rgba(255,101,0,0.08)',
+          border: '1px solid rgba(255,101,0,0.25)',
+          borderRadius: 2,
+          padding: '2px 6px',
+        }}>
           C2
         </span>
       </div>
 
-      {/* Center: Nav links */}
-      <nav className="flex items-center gap-1">
-        <button
-          onClick={() => navigate('/')}
-          className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
-          style={{
-            background: isActive('/') ? 'rgba(124,58,237,0.2)' : 'transparent',
-            color: isActive('/') ? '#a78bfa' : 'var(--text-muted)',
-            border: isActive('/') ? '1px solid rgba(124,58,237,0.3)' : '1px solid transparent',
-          }}
-        >
-          Dashboard
-        </button>
-        <button
-          onClick={() => navigate('/builder')}
-          className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
-          style={{
-            background: isActive('/builder') ? 'rgba(124,58,237,0.2)' : 'transparent',
-            color: isActive('/builder') ? '#a78bfa' : 'var(--text-muted)',
-            border: isActive('/builder') ? '1px solid rgba(124,58,237,0.3)' : '1px solid transparent',
-          }}
-        >
-          Agent Builder
-        </button>
+      {/* Center: Nav */}
+      <nav style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        {[
+          { label: 'Dashboard', path: '/' },
+          { label: 'Agent Builder', path: '/builder' },
+        ].map(({ label, path }) => (
+          <button
+            key={path}
+            onClick={() => transitionTo(path)}
+            style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: 11,
+              letterSpacing: '0.1em',
+              padding: '6px 16px',
+              background: 'transparent',
+              border: 'none',
+              borderBottom: isActive(path) ? '2px solid #FF6500' : '2px solid transparent',
+              color: isActive(path) ? '#FF6500' : 'rgba(255,255,255,0.35)',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              textTransform: 'uppercase',
+            }}
+            onMouseEnter={e => { if (!isActive(path)) e.currentTarget.style.color = 'rgba(255,255,255,0.6)' }}
+            onMouseLeave={e => { if (!isActive(path)) e.currentTarget.style.color = 'rgba(255,255,255,0.35)' }}
+          >
+            {label}
+          </button>
+        ))}
       </nav>
 
-      {/* Right: Time + Logout */}
-      <div className="flex items-center gap-4">
-        <span
-          className="font-mono text-xs px-3 py-1.5 rounded"
-          style={{ background: '#0d0d0d', color: '#a78bfa', border: '1px solid var(--border)' }}
-        >
-          {time.toLocaleTimeString()}
-        </span>
+      {/* Right: Status + Time + Logout */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+
+        {/* OPSEC indicator */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{
+            width: 6, height: 6, borderRadius: '50%',
+            background: '#00ff88',
+            boxShadow: '0 0 6px #00ff88',
+            animation: 'pulse-dot 2s ease-in-out infinite',
+          }} />
+          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'rgba(0,255,136,0.6)', letterSpacing: '0.15em' }}>
+            SECURE
+          </span>
+        </div>
+
+        {/* Clock */}
+        <div style={{
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: 11,
+          color: 'rgba(255,101,0,0.7)',
+          background: 'rgba(255,101,0,0.05)',
+          border: '1px solid rgba(255,101,0,0.12)',
+          borderRadius: 2,
+          padding: '4px 10px',
+          letterSpacing: '0.1em',
+        }}>
+          {time.toLocaleTimeString('fr-FR')}
+        </div>
+
+        {/* Logout */}
         <button
           onClick={logout}
-          className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
           style={{
-            background: 'rgba(239,68,68,0.1)',
-            color: '#f87171',
-            border: '1px solid rgba(239,68,68,0.2)',
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 10,
+            letterSpacing: '0.15em',
+            padding: '5px 12px',
+            background: 'transparent',
+            border: '1px solid rgba(255,45,85,0.25)',
+            borderRadius: 2,
+            color: 'rgba(255,45,85,0.6)',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            textTransform: 'uppercase',
           }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,45,85,0.08)'; e.currentTarget.style.color = '#FF2D55' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,45,85,0.6)' }}
         >
-          Logout
+          // EXIT
         </button>
       </div>
     </header>

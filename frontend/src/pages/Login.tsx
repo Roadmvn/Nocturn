@@ -1,46 +1,18 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../lib/api'
+import owlLogo from '../assets/owl.png'
 
-const PARTICLE_COUNT = 20
-
-interface Particle {
-  id: number
-  left: string
-  size: number
-  duration: number
-  delay: number
-}
-
-function Particles() {
-  const [particles] = useState<Particle[]>(() =>
-    Array.from({ length: PARTICLE_COUNT }, (_, i) => ({
-      id: i,
-      left: `${Math.random() * 100}%`,
-      size: Math.random() * 3 + 1,
-      duration: Math.random() * 15 + 10,
-      delay: Math.random() * 10,
-    }))
-  )
-
-  return (
-    <>
-      {particles.map(p => (
-        <span
-          key={p.id}
-          className="particle"
-          style={{
-            left: p.left,
-            bottom: '-10px',
-            width: p.size,
-            height: p.size,
-            animationDuration: `${p.duration}s`,
-            animationDelay: `${p.delay}s`,
-          }}
-        />
-      ))}
-    </>
-  )
+function Corner({ pos }: { pos: 'tl' | 'tr' | 'bl' | 'br' }) {
+  const s = 14, t = '1.5px', c = '#FF6500'
+  const base: React.CSSProperties = { position: 'absolute', width: s, height: s }
+  const styles: Record<string, React.CSSProperties> = {
+    tl: { top: 0,    left: 0,  borderTop:    `${t} solid ${c}`, borderLeft:   `${t} solid ${c}` },
+    tr: { top: 0,    right: 0, borderTop:    `${t} solid ${c}`, borderRight:  `${t} solid ${c}` },
+    bl: { bottom: 0, left: 0,  borderBottom: `${t} solid ${c}`, borderLeft:   `${t} solid ${c}` },
+    br: { bottom: 0, right: 0, borderBottom: `${t} solid ${c}`, borderRight:  `${t} solid ${c}` },
+  }
+  return <div style={{ ...base, ...styles[pos] }} />
 }
 
 export default function Login() {
@@ -49,157 +21,204 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
+  const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    if (localStorage.getItem('nocturn_token')) {
-      navigate('/')
-    }
+    if (localStorage.getItem('nocturn_token')) navigate('/')
+    const t = setTimeout(() => setVisible(true), 300)
+    return () => clearTimeout(t)
   }, [navigate])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
-
     try {
       const res = await api.post('/auth/login', { username, password })
       localStorage.setItem('nocturn_token', res.data.access_token)
       navigate('/')
     } catch {
-      setError('Identifiants invalides')
+      setError('ACCESS DENIED — Invalid credentials')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div
-      ref={containerRef}
-      className="min-h-screen flex items-center justify-center relative overflow-hidden"
-      style={{ background: 'var(--bg-primary)' }}
-    >
-      {/* Grid background */}
-      <div className="grid-bg" />
+    <div style={{ minHeight: '100vh', display: 'flex', background: '#040406' }}>
+      <div className="noise-overlay" />
 
-      {/* Scanlines */}
-      <div className="scanlines-subtle" />
+      {/* ── LEFT PANEL ── */}
+      <div style={{
+        flex: 1,
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
+        borderRight: '1px solid rgba(255,101,0,0.12)',
+      }}>
+        {/* Radial glow */}
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at center, rgba(255,101,0,0.06) 0%, transparent 65%)', pointerEvents: 'none' }} />
 
-      {/* Floating particles */}
-      <Particles />
-
-      {/* Vignette corners */}
-      <div
-        style={{
+        {/* NOCTURN watermark */}
+        <div style={{
           position: 'absolute',
-          inset: 0,
-          pointerEvents: 'none',
-          background: 'radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.6) 100%)',
-          zIndex: 1,
-        }}
-      />
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: 'clamp(80px, 14vw, 140px)',
+          fontWeight: 700,
+          color: 'rgba(255,101,0,0.04)',
+          letterSpacing: '0.15em',
+          userSelect: 'none',
+          whiteSpace: 'nowrap',
+        }}>
+          NOCTURN
+        </div>
 
-      <div className="w-full max-w-md px-4 relative" style={{ zIndex: 2 }}>
-        {/* Logo */}
-        <div className="text-center mb-10">
-          <div
-            className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 glow-purple"
-            style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)' }}
-          >
-            <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" />
-            </svg>
+        {/* Owl */}
+        <div style={{
+          position: 'relative',
+          zIndex: 2,
+          opacity: visible ? 1 : 0,
+          transform: visible ? 'scale(1)' : 'scale(0.88)',
+          transition: 'all 0.9s cubic-bezier(0.16,1,0.3,1)',
+        }}>
+          <img
+            src={owlLogo}
+            alt="Nocturn"
+            style={{
+              width: 'clamp(160px, 22vw, 260px)',
+              height: 'clamp(160px, 22vw, 260px)',
+              objectFit: 'contain',
+              filter: 'drop-shadow(0 0 30px rgba(255,101,0,0.5)) drop-shadow(0 0 80px rgba(255,101,0,0.15))',
+              animation: 'owl-glow-pulse 3s ease-in-out infinite',
+            }}
+          />
+        </div>
+
+        {/* Bottom label */}
+        <div style={{
+          position: 'absolute',
+          bottom: 28,
+          left: 0,
+          right: 0,
+          textAlign: 'center',
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: 10,
+          color: 'rgba(255,101,0,0.35)',
+          letterSpacing: '0.3em',
+        }}>
+          NOCTURN C2 — RESTRICTED
+        </div>
+      </div>
+
+      {/* ── RIGHT PANEL ── */}
+      <div style={{
+        width: 'clamp(340px, 40vw, 480px)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '48px',
+        background: 'rgba(6,4,8,0.6)',
+      }}>
+        <div style={{
+          width: '100%',
+          opacity: visible ? 1 : 0,
+          transform: visible ? 'translateX(0)' : 'translateX(20px)',
+          transition: 'all 0.7s cubic-bezier(0.16,1,0.3,1) 0.2s',
+        }}>
+          {/* Header */}
+          <div style={{ marginBottom: 48 }}>
+            <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'rgba(255,101,0,0.5)', letterSpacing: '0.3em', textTransform: 'uppercase', margin: '0 0 12px' }}>
+              // ACCESS PORTAL
+            </p>
+            <h2 style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 22, fontWeight: 700, color: '#F0F0F0', letterSpacing: '0.15em', margin: 0, textTransform: 'uppercase' }}>
+              OPERATOR LOGIN
+            </h2>
+            <div style={{ width: 40, height: 2, background: 'linear-gradient(90deg, #FF6500, transparent)', marginTop: 14 }} />
           </div>
-          <h1 className="text-4xl font-bold tracking-widest text-glow-purple" style={{ color: '#a78bfa' }}>
-            NOCTURN
-          </h1>
-          <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-            Command & Control Framework
+
+          {/* Form card */}
+          <div style={{ position: 'relative', padding: '36px 32px', border: '1px solid rgba(255,101,0,0.12)', borderRadius: 2 }}>
+            <Corner pos="tl" /><Corner pos="tr" /><Corner pos="bl" /><Corner pos="br" />
+
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 26 }}>
+              {/* Operator ID */}
+              <div className="input-group">
+                <label style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, letterSpacing: '0.25em', color: 'rgba(255,255,255,0.25)', display: 'block', marginBottom: 10, textTransform: 'uppercase' }}>
+                  Operator ID
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: '#FF6500', opacity: 0.6, userSelect: 'none' }}>//</span>
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={e => setUsername(e.target.value)}
+                    placeholder="enter identifier"
+                    required
+                    className="login-input"
+                    style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontFamily: "'JetBrains Mono', monospace", fontSize: 13, color: '#F0F0F0', letterSpacing: '0.04em' }}
+                  />
+                </div>
+                <div className="input-line" />
+              </div>
+
+              {/* Access Key */}
+              <div className="input-group">
+                <label style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, letterSpacing: '0.25em', color: 'rgba(255,255,255,0.25)', display: 'block', marginBottom: 10, textTransform: 'uppercase' }}>
+                  Access Key
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: '#FF6500', opacity: 0.6, userSelect: 'none' }}>//</span>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="••••••••••"
+                    required
+                    className="login-input"
+                    style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontFamily: "'JetBrains Mono', monospace", fontSize: 13, color: '#F0F0F0', letterSpacing: '0.04em' }}
+                  />
+                </div>
+                <div className="input-line" />
+              </div>
+
+              {/* Error */}
+              {error && (
+                <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: '#FF2D55', background: 'rgba(255,45,85,0.07)', border: '1px solid rgba(255,45,85,0.2)', padding: '10px 14px', letterSpacing: '0.05em', borderRadius: 2 }}>
+                  ✕ &nbsp;{error}
+                </div>
+              )}
+
+              {/* Submit */}
+              <button
+                type="submit"
+                disabled={loading}
+                style={{
+                  marginTop: 6, padding: '14px 0',
+                  background: loading ? 'transparent' : 'rgba(255,101,0,0.08)',
+                  border: `1px solid ${loading ? 'rgba(255,101,0,0.15)' : 'rgba(255,101,0,0.55)'}`,
+                  borderRadius: 2, color: loading ? 'rgba(255,255,255,0.2)' : '#FF6500',
+                  fontFamily: "'JetBrains Mono', monospace", fontSize: 11,
+                  letterSpacing: '0.28em', textTransform: 'uppercase',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s ease', position: 'relative', overflow: 'hidden', width: '100%',
+                }}
+                onMouseEnter={e => { if (!loading) { e.currentTarget.style.background = 'rgba(255,101,0,0.14)'; e.currentTarget.style.boxShadow = '0 0 18px rgba(255,101,0,0.2)' } }}
+                onMouseLeave={e => { if (!loading) { e.currentTarget.style.background = 'rgba(255,101,0,0.08)'; e.currentTarget.style.boxShadow = 'none' } }}
+              >
+                {loading ? '// AUTHENTICATING...' : '// INITIATE ACCESS'}
+                {!loading && <div className="btn-scan" />}
+              </button>
+            </form>
+          </div>
+
+          <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: '#2A2030', letterSpacing: '0.1em', textAlign: 'center', marginTop: 24 }}>
+            AUTHORIZED USE ONLY
           </p>
         </div>
-
-        {/* Card */}
-        <div
-          className="rounded-2xl p-8 border"
-          style={{
-            background: 'var(--bg-card)',
-            borderColor: 'rgba(124,58,237,0.3)',
-            boxShadow: '0 0 30px rgba(124,58,237,0.1)',
-          }}
-        >
-          <h2 className="text-lg font-semibold mb-6" style={{ color: 'var(--text-primary)' }}>
-            Authentification
-          </h2>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm mb-2" style={{ color: 'var(--text-muted)' }}>
-                Identifiant
-              </label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="admin"
-                className="w-full px-4 py-3 rounded-lg text-sm outline-none transition-all"
-                style={{
-                  background: '#0a0a0f',
-                  border: '1px solid var(--border)',
-                  color: 'var(--text-primary)',
-                }}
-                onFocus={(e) => e.target.style.borderColor = '#7c3aed'}
-                onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm mb-2" style={{ color: 'var(--text-muted)' }}>
-                Mot de passe
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-4 py-3 rounded-lg text-sm outline-none transition-all"
-                style={{
-                  background: '#0a0a0f',
-                  border: '1px solid var(--border)',
-                  color: 'var(--text-primary)',
-                }}
-                onFocus={(e) => e.target.style.borderColor = '#7c3aed'}
-                onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
-                required
-              />
-            </div>
-
-            {error && (
-              <div className="px-4 py-3 rounded-lg text-sm"
-                style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.3)' }}>
-                {error}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 rounded-lg font-semibold text-sm transition-all mt-2 glow-purple"
-              style={{
-                background: loading ? '#4b5563' : 'linear-gradient(135deg, #7c3aed, #4f46e5)',
-                color: 'white',
-                cursor: loading ? 'not-allowed' : 'pointer',
-              }}
-            >
-              {loading ? 'Connexion...' : 'Connexion'}
-            </button>
-          </form>
-        </div>
-
-        <p className="text-center text-xs mt-6" style={{ color: 'var(--text-muted)' }}>
-          Nocturn C2 — Usage éducatif uniquement
-        </p>
       </div>
     </div>
   )
