@@ -26,8 +26,9 @@ function Corner({ pos }: { pos: 'tl' | 'tr' | 'bl' | 'br' }) {
 
 function StatBlock({ label, value, color }: { label: string; value: string | number; color: string }) {
   return (
-    <div style={{ position: 'relative', padding: '22px 24px', textAlign: 'center', background: 'rgba(8,4,6,0.6)', border: '1px solid rgba(255,101,0,0.08)' }}>
+    <div style={{ position: 'relative', padding: '22px 24px', textAlign: 'center', background: 'rgba(8,4,6,0.6)', border: '1px solid rgba(255,101,0,0.08)', borderTop: `2px solid ${color}`, overflow: 'hidden' }}>
       <Corner pos="tl" /><Corner pos="tr" /><Corner pos="bl" /><Corner pos="br" />
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 40, background: `radial-gradient(ellipse at 50% 0%, ${color}12 0%, transparent 70%)`, pointerEvents: 'none' }} />
       <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, letterSpacing: '0.2em', color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', margin: '0 0 12px' }}>
         {label}
       </p>
@@ -83,17 +84,30 @@ export default function Dashboard() {
       <div className="noise-overlay" />
       <Navbar />
 
+      {/* ── System status bar ── */}
+      <div style={{ borderBottom: '1px solid rgba(255,101,0,0.08)', background: 'rgba(4,4,6,0.6)', padding: '6px 24px', display: 'flex', alignItems: 'center', gap: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#00ff88', boxShadow: '0 0 6px #00ff88', animation: 'pulse-dot 2s ease-in-out infinite' }} />
+          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.15em' }}>SYS ONLINE</span>
+        </div>
+        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'rgba(255,101,0,0.3)', letterSpacing: '0.1em' }}>|</span>
+        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.12em' }}>C2 FRAMEWORK v1.0</span>
+        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'rgba(255,101,0,0.3)', letterSpacing: '0.1em' }}>|</span>
+        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.12em' }}>POLLING 5s</span>
+      </div>
+
       <main style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 24px' }}>
 
         {/* ── Header row ── */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
           <div>
-            <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'rgba(255,101,0,0.5)', letterSpacing: '0.25em', textTransform: 'uppercase', margin: '0 0 6px' }}>
+            <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: '#FF6500', letterSpacing: '0.25em', textTransform: 'uppercase', margin: '0 0 6px', opacity: 0.8 }}>
               // OPERATIONS CENTER
             </p>
-            <h1 style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 18, fontWeight: 700, color: '#F0F0F0', letterSpacing: '0.15em', margin: 0, textTransform: 'uppercase' }}>
+            <h1 style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 22, fontWeight: 700, color: '#F0F0F0', letterSpacing: '0.15em', margin: '0 0 10px', textTransform: 'uppercase' }}>
               ACTIVE AGENTS
             </h1>
+            <div style={{ width: 40, height: 2, background: 'linear-gradient(90deg, #FF6500, transparent)' }} />
           </div>
           <button
             onClick={fetchAgents}
@@ -169,7 +183,7 @@ export default function Dashboard() {
           }}>
             <Corner pos="tl" /><Corner pos="tr" /><Corner pos="bl" /><Corner pos="br" />
 
-            <div style={{ fontSize: 72, lineHeight: 1, marginBottom: 20, filter: 'grayscale(1) brightness(2) drop-shadow(0 0 18px rgba(255,255,255,0.4))', animation: 'pulse-dot 3s ease-in-out infinite' }}>
+            <div style={{ fontSize: 72, lineHeight: 1, marginBottom: 24, filter: 'grayscale(1) brightness(2) drop-shadow(0 0 18px rgba(255,255,255,0.4))', animation: 'pulse-dot 3s ease-in-out infinite' }}>
               👾
             </div>
             <h3 style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.75)', letterSpacing: '0.2em', textTransform: 'uppercase', margin: '0 0 8px' }}>
@@ -223,13 +237,14 @@ function AgentCard({ agent, onControl, formatLastSeen }: {
       style={{
         background: 'rgba(8,4,6,0.85)',
         border: `1px solid ${borderColor}`,
+        borderLeft: `3px solid ${statusColor}`,
         borderRadius: 2,
         padding: '20px',
         position: 'relative',
         transition: 'all 0.2s',
       }}
-      onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,101,0,0.25)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 0 20px rgba(255,101,0,0.05)' }}
-      onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = borderColor; (e.currentTarget as HTMLDivElement).style.boxShadow = 'none' }}
+      onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,101,0,0.25)'; (e.currentTarget as HTMLDivElement).style.boxShadow = `0 0 24px ${statusColor}10` }}
+      onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = borderColor; (e.currentTarget as HTMLDivElement).style.boxShadow = 'none'; (e.currentTarget as HTMLDivElement).style.borderLeftColor = statusColor }}
     >
       <Corner pos="tl" /><Corner pos="tr" /><Corner pos="bl" /><Corner pos="br" />
 
