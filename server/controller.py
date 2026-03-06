@@ -390,18 +390,7 @@ def index_redirect():
 # ─────────────────────────────────────────
 
 if __name__ == "__main__":
-    PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    cert = os.path.join(PROJECT_ROOT, "server.crt")
-    key = os.path.join(PROJECT_ROOT, "server.key")
-
-    ssl_ctx = None
-    if os.path.exists(cert) and os.path.exists(key):
-        ssl_ctx = (cert, key)
-        print("🔐 SSL activé")
-    else:
-        print("⚠️  Pas de certificats SSL — mode HTTP")
-
-    # Lance le serveur API agents (port 1234) en background
+    # SSL géré par nginx en prod — Flask tourne en HTTP derrière le proxy
     print("🚀 Démarrage API agents (port 1234)...")
     threading.Thread(
         target=server.app.run,
@@ -409,18 +398,16 @@ if __name__ == "__main__":
             "host": "0.0.0.0",
             "port": 1234,
             "debug": False,
-            "ssl_context": ssl_ctx
         },
         daemon=True
     ).start()
     time.sleep(2)
 
     print("🌐 Démarrage controller (port 5000)...")
-    print("👉 https://nocturn.roadmvn.com ou http://localhost:5000")
+    print("👉 https://nocturn.roadmvn.com")
     app.run(
         host="0.0.0.0",
         port=5000,
         debug=False,
         use_reloader=False,
-        ssl_context=ssl_ctx
     )
