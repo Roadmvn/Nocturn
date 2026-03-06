@@ -10,10 +10,43 @@ interface HistoryEntry {
   isError?: boolean
 }
 
-const QUICK_COMMANDS = [
-  'whoami', 'hostname', 'dir', 'ipconfig /all',
-  'systeminfo', 'tasklist', 'netstat -ano',
-  'check-admin', 'net user', 'help',
+const COMMAND_CATEGORIES = [
+  {
+    label: '🖥 Système',
+    cmds: ['whoami', 'hostname', 'systeminfo', 'net user', 'net localgroup administrators', 'set', 'check-admin'],
+  },
+  {
+    label: '📁 Fichiers',
+    cmds: ['dir', 'dir /a', 'tree', 'cd ..'],
+  },
+  {
+    label: '🌐 Réseau',
+    cmds: ['ipconfig /all', 'netstat -ano', 'arp -a', 'route print'],
+  },
+  {
+    label: '⚙ Processus',
+    cmds: ['tasklist', 'tasklist /v'],
+  },
+  {
+    label: '🔐 Credentials',
+    cmds: ['lsass', 'sam', 'system', 'security'],
+  },
+  {
+    label: '🛡 Antivirus',
+    cmds: ['av-status', 'av-off', 'av-on'],
+  },
+  {
+    label: '📌 Persistance',
+    cmds: ['check-persist'],
+  },
+  {
+    label: '🐚 Shell',
+    cmds: ['shell cmd.exe', 'shell powershell.exe', 'shell_close'],
+  },
+  {
+    label: '❓ Aide',
+    cmds: ['help', 'quit'],
+  },
 ]
 
 export default function Console() {
@@ -179,24 +212,32 @@ export default function Console() {
 
         {/* Terminal */}
         <div className="flex flex-col flex-1 overflow-hidden">
-          {/* Quick commands */}
+          {/* Quick commands par catégorie */}
           <div
-            className="px-4 py-2 flex flex-wrap gap-2 border-b shrink-0"
-            style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}
+            className="border-b shrink-0 overflow-y-auto"
+            style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', maxHeight: '160px' }}
           >
-            {QUICK_COMMANDS.map(cmd => (
-              <button
-                key={cmd}
-                onClick={() => sendCommand(cmd)}
-                className="px-3 py-1 rounded text-xs font-mono transition-all hover:opacity-80"
-                style={{
-                  background: 'rgba(124,58,237,0.15)',
-                  color: '#a78bfa',
-                  border: '1px solid rgba(124,58,237,0.25)',
-                }}
-              >
-                {cmd}
-              </button>
+            {COMMAND_CATEGORIES.map(cat => (
+              <div key={cat.label} className="px-3 py-1.5 flex items-center gap-2 flex-wrap border-b"
+                style={{ borderColor: 'rgba(30,30,46,0.5)' }}>
+                <span className="text-xs shrink-0 w-32" style={{ color: 'var(--text-muted)' }}>
+                  {cat.label}
+                </span>
+                {cat.cmds.map(cmd => (
+                  <button
+                    key={cmd}
+                    onClick={() => sendCommand(cmd)}
+                    className="px-2 py-0.5 rounded text-xs font-mono transition-all hover:opacity-80"
+                    style={{
+                      background: 'rgba(124,58,237,0.15)',
+                      color: '#a78bfa',
+                      border: '1px solid rgba(124,58,237,0.25)',
+                    }}
+                  >
+                    {cmd}
+                  </button>
+                ))}
+              </div>
             ))}
           </div>
 
