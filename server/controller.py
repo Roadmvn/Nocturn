@@ -390,20 +390,36 @@ def index_redirect():
 # ─────────────────────────────────────────
 
 if __name__ == "__main__":
-    # SSL géré par nginx en prod — Flask tourne en HTTP derrière le proxy
-    print("🚀 Démarrage API agents (port 1234)...")
+    # SSL Let's Encrypt pour les agents (port 1234 doit être HTTPS)
+    # Le controller (port 5000) est derrière nginx, tourne en HTTP
+    LE_CERT = "/etc/letsencrypt/live/nocturn.roadmvn.com/fullchain.pem"
+    LE_KEY  = "/etc/letsencrypt/live/nocturn.roadmvn.com/privkey.pem"
+
+    if os.path.exists(LE_CERT) and os.path.exists(LE_KEY):
+        agent_ssl = (LE_CERT, LE_KEY)
+        print("🔐 SSL Let's Encrypt activé pour les agents (port 1234)")
+    else:
+        # Fallback : certs auto-signés
+        PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        cert = os.path.join(PROJECT_ROOT, "server.crt")
+        key  = os.path.join(PROJECT_ROOT, "server.key")
+        agent_ssl = (cert, key) if os.path.exists(cert) else None
+        print("⚠️  Let's Encrypt introuvable — fallback certs auto-signés")
+
+    print("🚀 Démarrage API agents HTTPS (port 1234)...")
     threading.Thread(
         target=server.app.run,
         kwargs={
             "host": "0.0.0.0",
             "port": 1234,
             "debug": False,
+            "ssl_context": agent_ssl,
         },
         daemon=True
     ).start()
     time.sleep(2)
 
-    print("🌐 Démarrage controller (port 5000)...")
+    print("🌐 Démarrage controller HTTP (port 5000 — derrière nginx)...")
     print("👉 https://nocturn.roadmvn.com")
     app.run(
         host="0.0.0.0",
