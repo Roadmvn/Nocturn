@@ -19,11 +19,11 @@ function Corner({ pos }: { pos: 'tl' | 'tr' | 'bl' | 'br' }) {
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, letterSpacing: '0.25em', color: 'rgba(255,255,255,0.25)', display: 'block', marginBottom: 10, textTransform: 'uppercase' }}>
+      <label style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, letterSpacing: '0.2em', color: 'rgba(255,255,255,0.55)', display: 'block', marginBottom: 10, textTransform: 'uppercase' }}>
         {label}
       </label>
       {children}
-      {hint && <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'rgba(255,255,255,0.15)', marginTop: 6, letterSpacing: '0.05em' }}>{hint}</p>}
+      {hint && <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'rgba(255,255,255,0.3)', marginTop: 6, letterSpacing: '0.05em' }}>{hint}</p>}
     </div>
   )
 }
@@ -94,7 +94,8 @@ export default function Builder() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', position: 'relative' }}>
+    <div style={{ minHeight: '100vh', position: 'relative' }}>
+      <div className="app-bg" />
       <div className="noise-overlay" />
       <Navbar />
 
@@ -173,7 +174,7 @@ export default function Builder() {
 
           {/* Config preview */}
           <div>
-            <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, letterSpacing: '0.25em', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', margin: '0 0 10px' }}>
+            <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, letterSpacing: '0.2em', color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', margin: '0 0 10px' }}>
               Config Preview
             </p>
             <div style={{ background: '#020202', border: '1px solid rgba(255,101,0,0.1)', borderRadius: 2, padding: '16px', fontFamily: "'JetBrains Mono', monospace", fontSize: 11, lineHeight: 1.8 }}>
@@ -196,7 +197,7 @@ export default function Builder() {
           {/* Build command */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, letterSpacing: '0.25em', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', margin: 0 }}>
+              <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, letterSpacing: '0.2em', color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', margin: 0 }}>
                 Compile Command
               </p>
               <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: '#00ff88', background: 'rgba(0,255,136,0.07)', border: '1px solid rgba(0,255,136,0.2)', borderRadius: 2, padding: '2px 8px', letterSpacing: '0.1em' }}>

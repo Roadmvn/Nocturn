@@ -26,12 +26,12 @@ function Corner({ pos }: { pos: 'tl' | 'tr' | 'bl' | 'br' }) {
 
 function StatBlock({ label, value, color }: { label: string; value: string | number; color: string }) {
   return (
-    <div style={{ position: 'relative', padding: '16px 24px', minWidth: 120 }}>
+    <div style={{ position: 'relative', padding: '22px 24px', textAlign: 'center', background: 'rgba(8,4,6,0.6)', border: '1px solid rgba(255,101,0,0.08)' }}>
       <Corner pos="tl" /><Corner pos="tr" /><Corner pos="bl" /><Corner pos="br" />
-      <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, letterSpacing: '0.2em', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', margin: '0 0 8px' }}>
+      <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, letterSpacing: '0.2em', color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', margin: '0 0 12px' }}>
         {label}
       </p>
-      <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 28, fontWeight: 700, color, margin: 0, textShadow: `0 0 16px ${color}60` }}>
+      <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 36, fontWeight: 700, color, margin: 0, textShadow: `0 0 20px ${color}50`, lineHeight: 1 }}>
         {value}
       </p>
     </div>
@@ -78,7 +78,8 @@ export default function Dashboard() {
   )
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', position: 'relative' }}>
+    <div style={{ minHeight: '100vh', position: 'relative' }}>
+      <div className="app-bg" />
       <div className="noise-overlay" />
       <Navbar />
 
@@ -119,13 +120,10 @@ export default function Dashboard() {
         </div>
 
         {/* ── Stats row ── */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 32, flexWrap: 'wrap' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 32 }}>
           <StatBlock label="Agents" value={`${activeAgents.length} / ${agents.length}`} color="#FF6500" />
-          <div style={{ width: 1, height: 60, background: 'rgba(255,101,0,0.1)', margin: '0 8px' }} />
           <StatBlock label="Online" value={onlineAgents.length} color="#00ff88" />
-          <div style={{ width: 1, height: 60, background: 'rgba(255,101,0,0.1)', margin: '0 8px' }} />
           <StatBlock label="Idle" value={idleAgents.length} color="#FF9500" />
-          <div style={{ width: 1, height: 60, background: 'rgba(255,101,0,0.1)', margin: '0 8px' }} />
           <StatBlock label="Offline" value={agents.filter(a => a.status === 'offline').length} color="rgba(255,45,85,0.8)" />
         </div>
 
@@ -156,7 +154,7 @@ export default function Dashboard() {
         {/* ── Content ── */}
         {loading ? (
           <div style={{ textAlign: 'center', padding: '80px 0' }}>
-            <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'rgba(255,101,0,0.4)', letterSpacing: '0.2em' }}>
+            <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'rgba(255,101,0,0.8)', letterSpacing: '0.2em' }}>
               // SCANNING...
             </p>
           </div>
@@ -171,15 +169,13 @@ export default function Dashboard() {
           }}>
             <Corner pos="tl" /><Corner pos="tr" /><Corner pos="bl" /><Corner pos="br" />
 
-            <img
-              src={owlLogo}
-              alt=""
-              style={{ width: 72, height: 72, objectFit: 'contain', opacity: 0.25, marginBottom: 20, filter: 'grayscale(1)' }}
-            />
-            <h3 style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.2em', textTransform: 'uppercase', margin: '0 0 8px' }}>
+            <div style={{ fontSize: 72, lineHeight: 1, marginBottom: 20, filter: 'grayscale(1) brightness(2) drop-shadow(0 0 18px rgba(255,255,255,0.4))', animation: 'pulse-dot 3s ease-in-out infinite' }}>
+              👾
+            </div>
+            <h3 style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.75)', letterSpacing: '0.2em', textTransform: 'uppercase', margin: '0 0 8px' }}>
               {search ? 'NO RESULTS' : 'NO AGENTS CONNECTED'}
             </h3>
-            <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: 'rgba(255,255,255,0.15)', letterSpacing: '0.1em', margin: '0 0 28px' }}>
+            <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', margin: '0 0 28px' }}>
               {search ? `no match for "${search}"` : '// awaiting connections...'}
             </p>
             {!search && (
@@ -251,7 +247,7 @@ function AgentCard({ agent, onControl, formatLastSeen }: {
       {/* Info */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 18 }}>
         <div>
-          <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 8, letterSpacing: '0.2em', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', margin: '0 0 4px' }}>
+          <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, letterSpacing: '0.2em', color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', margin: '0 0 4px' }}>
             Working Directory
           </p>
           <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'rgba(255,101,0,0.7)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -259,10 +255,10 @@ function AgentCard({ agent, onControl, formatLastSeen }: {
           </p>
         </div>
         <div>
-          <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 8, letterSpacing: '0.2em', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', margin: '0 0 4px' }}>
+          <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, letterSpacing: '0.2em', color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', margin: '0 0 4px' }}>
             Last Seen
           </p>
-          <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'rgba(255,255,255,0.4)', margin: 0 }}>
+          <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'rgba(255,255,255,0.6)', margin: 0 }}>
             {formatLastSeen(agent.last_seen)}
           </p>
         </div>

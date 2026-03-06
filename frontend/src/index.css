@@ -20,7 +20,7 @@
 * { box-sizing: border-box; }
 
 body {
-  background-color: var(--bg-primary);
+  background-color: #080608;
   color: var(--text-primary);
   font-family: 'Inter', sans-serif;
   margin: 0;
@@ -201,7 +201,7 @@ button, a, [role="button"] { cursor: pointer; }
   box-shadow: 0 0 10px rgba(255,101,0,0.4);
 }
 .login-input::placeholder {
-  color: #2A2030;
+  color: rgba(255,255,255,0.25);
   font-family: 'JetBrains Mono', monospace;
 }
 
@@ -253,4 +253,26 @@ button, a, [role="button"] { cursor: pointer; }
     linear-gradient(rgba(255,101,0,0.04) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255,101,0,0.04) 1px, transparent 1px);
   background-size: 48px 48px;
+}
+
+/* ─── APP BACKGROUND ─── */
+.app-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    /* ambient glow top-right */
+    radial-gradient(ellipse 60% 40% at 85% 10%, rgba(255,101,0,0.06) 0%, transparent 70%),
+    /* ambient glow bottom-left */
+    radial-gradient(ellipse 50% 35% at 10% 90%, rgba(255,101,0,0.04) 0%, transparent 70%),
+    /* base */
+    #080608;
+  background-image:
+    radial-gradient(ellipse 60% 40% at 85% 10%, rgba(255,101,0,0.06) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 35% at 10% 90%, rgba(255,101,0,0.04) 0%, transparent 70%),
+    linear-gradient(rgba(255,101,0,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,101,0,0.03) 1px, transparent 1px);
+  background-color: #080608;
+  background-size: auto, auto, 52px 52px, 52px 52px;
 }
