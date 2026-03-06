@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
 import api from '../lib/api'
 import Navbar from '../components/Navbar'
 import StatusBadge from '../components/StatusBadge'
-import owlLogo from '../assets/owl.png'
+import { useTransitionNavigate } from '../context/TransitionContext'
 
 interface Agent {
   id: string
@@ -40,7 +39,7 @@ function StatBlock({ label, value, color }: { label: string; value: string | num
 }
 
 export default function Dashboard() {
-  const navigate = useNavigate()
+  const transitionTo = useTransitionNavigate()
   const [agents, setAgents] = useState<Agent[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -79,7 +78,7 @@ export default function Dashboard() {
   )
 
   return (
-    <div style={{ minHeight: '100vh', position: 'relative' }}>
+    <div className="page-enter" style={{ minHeight: '100vh', position: 'relative' }}>
       <div className="app-bg" />
       <div className="noise-overlay" />
       <Navbar />
@@ -167,10 +166,8 @@ export default function Dashboard() {
 
         {/* ── Content ── */}
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '80px 0' }}>
-            <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'rgba(255,101,0,0.8)', letterSpacing: '0.2em' }}>
-              // SCANNING...
-            </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
+            {[0, 1, 2].map(i => <SkeletonCard key={i} delay={i * 120} />)}
           </div>
 
         ) : filteredAgents.length === 0 ? (
@@ -194,7 +191,7 @@ export default function Dashboard() {
             </p>
             {!search && (
               <button
-                onClick={() => navigate('/builder')}
+                onClick={() => transitionTo('/builder')}
                 style={{
                   fontFamily: "'JetBrains Mono', monospace",
                   fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase',
@@ -213,8 +210,8 @@ export default function Dashboard() {
         ) : (
           /* Agent grid */
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
-            {filteredAgents.map(agent => (
-              <AgentCard key={agent.id} agent={agent} onControl={() => navigate(`/agent/${agent.id}`)} formatLastSeen={formatLastSeen} />
+            {filteredAgents.map((agent, i) => (
+              <AgentCard key={agent.id} index={i} agent={agent} onControl={() => transitionTo(`/agent/${agent.id}`)} formatLastSeen={formatLastSeen} />
             ))}
           </div>
         )}
@@ -223,18 +220,47 @@ export default function Dashboard() {
   )
 }
 
-function AgentCard({ agent, onControl, formatLastSeen }: {
+function SkeletonCard({ delay }: { delay: number }) {
+  return (
+    <div style={{
+      background: 'rgba(8,4,6,0.85)',
+      border: '1px solid rgba(255,101,0,0.08)',
+      borderLeft: '3px solid rgba(255,101,0,0.18)',
+      borderRadius: 2, padding: '20px',
+      animation: `skel-shimmer 1.6s ease-in-out ${delay}ms infinite`,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+        <div className="skel" style={{ width: 6, height: 6, borderRadius: '50%', background: 'rgba(255,101,0,0.18)' }} />
+        <div className="skel" style={{ height: 12, width: 140, background: 'rgba(255,101,0,0.12)' }} />
+        <div className="skel" style={{ height: 18, width: 55, background: 'rgba(255,255,255,0.05)', marginLeft: 'auto', animationDelay: '0.15s' }} />
+      </div>
+      <div style={{ marginBottom: 10 }}>
+        <div className="skel" style={{ height: 8, width: 110, background: 'rgba(255,255,255,0.05)', marginBottom: 6, animationDelay: '0.05s' }} />
+        <div className="skel" style={{ height: 11, width: '78%', background: 'rgba(255,255,255,0.07)', animationDelay: '0.1s' }} />
+      </div>
+      <div style={{ marginBottom: 20 }}>
+        <div className="skel" style={{ height: 8, width: 75, background: 'rgba(255,255,255,0.05)', marginBottom: 6, animationDelay: '0.2s' }} />
+        <div className="skel" style={{ height: 11, width: 95, background: 'rgba(255,255,255,0.07)', animationDelay: '0.25s' }} />
+      </div>
+      <div className="skel" style={{ height: 34, width: '100%', background: 'rgba(255,101,0,0.06)', animationDelay: '0.3s' }} />
+    </div>
+  )
+}
+
+function AgentCard({ agent, onControl, formatLastSeen, index }: {
   agent: { id: string; cwd: string; last_seen: number; status: string }
   onControl: () => void
   formatLastSeen: (s: number) => string
+  index: number
 }) {
   const statusColor = agent.status === 'online' ? '#00ff88' : agent.status === 'idle' ? '#FF9500' : '#FF2D55'
   const borderColor = agent.status === 'online' ? 'rgba(0,255,136,0.15)' : agent.status === 'idle' ? 'rgba(255,149,0,0.1)' : 'rgba(255,45,85,0.08)'
 
   return (
     <div
-      className="fade-in"
+      className="card-stagger"
       style={{
+        animationDelay: `${index * 60}ms`,
         background: 'rgba(8,4,6,0.85)',
         border: `1px solid ${borderColor}`,
         borderLeft: `3px solid ${statusColor}`,

@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import owlLogo from '../assets/owl.png'
+import { useTransitionNavigate } from '../context/TransitionContext'
 
 export default function Navbar() {
   const navigate = useNavigate()
+  const transitionTo = useTransitionNavigate()
   const location = useLocation()
   const [time, setTime] = useState(new Date())
 
@@ -35,7 +37,7 @@ export default function Navbar() {
     }}>
 
       {/* Left: Logo */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={() => navigate('/')}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={() => transitionTo('/')}>
         <img
           src={owlLogo}
           alt="Nocturn"
@@ -73,7 +75,7 @@ export default function Navbar() {
         ].map(({ label, path }) => (
           <button
             key={path}
-            onClick={() => navigate(path)}
+            onClick={() => transitionTo(path)}
             style={{
               fontFamily: "'JetBrains Mono', monospace",
               fontSize: 11,

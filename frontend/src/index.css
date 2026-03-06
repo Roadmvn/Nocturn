@@ -244,6 +244,45 @@ button, a, [role="button"] { cursor: pointer; }
   100% { background-position: 0 100px; }
 }
 
+/* ─── PAGE TRANSITION OVERLAY ─── */
+@keyframes overlay-enter {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes overlay-leave {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+/* ─── PAGE MOUNT ─── */
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.page-enter {
+  animation: page-enter 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ─── STAGGERED CARD ENTRANCE ─── */
+@keyframes card-stagger {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.card-stagger {
+  opacity: 0;
+  animation: card-stagger 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ─── SKELETON SHIMMER ─── */
+@keyframes skel-shimmer {
+  0%, 100% { opacity: 0.35; }
+  50%       { opacity: 0.8; }
+}
+.skel {
+  animation: skel-shimmer 1.6s ease-in-out infinite;
+  border-radius: 2px;
+}
+
 /* ─── GRID BG ─── */
 .grid-bg {
   position: absolute;

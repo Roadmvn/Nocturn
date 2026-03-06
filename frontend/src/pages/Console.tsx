@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import api from '../lib/api'
+import { useTransitionNavigate } from '../context/TransitionContext'
 
 interface HistoryEntry {
   command: string
@@ -25,7 +26,7 @@ const COMMAND_CATEGORIES = [
 
 export default function Console() {
   const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
+  const transitionTo = useTransitionNavigate()
   const [history, setHistory] = useState<HistoryEntry[]>([])
   const [command, setCommand] = useState('')
   const [currentCwd, setCurrentCwd] = useState('?')
@@ -109,7 +110,7 @@ export default function Console() {
   const mono: React.CSSProperties = { fontFamily: "'JetBrains Mono', monospace" }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#060408', position: 'relative' }}>
+    <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#060408', position: 'relative' }}>
       <div className="app-bg" />
       <div className="noise-overlay" />
 
@@ -126,7 +127,7 @@ export default function Console() {
         {/* Left */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button
-            onClick={() => navigate('/')}
+            onClick={() => transitionTo('/')}
             style={{ ...mono, fontSize: 10, letterSpacing: '0.12em', padding: '5px 10px', background: 'transparent', border: '1px solid rgba(255,101,0,0.2)', borderRadius: 2, color: 'rgba(255,101,0,0.6)', cursor: 'pointer', transition: 'all 0.2s', textTransform: 'uppercase' }}
             onMouseEnter={e => { e.currentTarget.style.color = '#FF6500'; e.currentTarget.style.borderColor = 'rgba(255,101,0,0.5)' }}
             onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,101,0,0.6)'; e.currentTarget.style.borderColor = 'rgba(255,101,0,0.2)' }}
