@@ -8,6 +8,7 @@ interface HistoryEntry {
   cwd: string
   time: string
   isError?: boolean
+  pending?: boolean
 }
 
 const COMMAND_CATEGORIES = [
@@ -85,25 +86,47 @@ export default function Console() {
     setLoading(true)
     setCommand('')
     setCmdIndex(-1)
+
+    // Affiche la commande immédiatement dans le terminal (en attente)
+    const pendingEntry: HistoryEntry = {
+      command: toSend,
+      output: '⏳ En attente de réponse...',
+      cwd: currentCwd,
+      time: new Date().toLocaleTimeString(),
+      isError: false,
+      pending: true,
+    }
+    setHistory(prev => [...prev, pendingEntry])
+
     try {
       const res = await api.post(`/agents/${id}/execute`, { command: toSend })
-      setCurrentCwd(res.data.cwd || currentCwd)
-      setHistory(prev => [...prev, {
-        command: toSend,
-        output: res.data.output,
-        cwd: res.data.cwd || currentCwd,
-        time: new Date().toLocaleTimeString(),
-        isError: false,
-      }])
+      const newCwd = res.data.cwd || currentCwd
+      setCurrentCwd(newCwd)
+      // Remplace l'entrée pending par la vraie réponse
+      setHistory(prev => [
+        ...prev.slice(0, -1),
+        {
+          command: toSend,
+          output: res.data.output,
+          cwd: newCwd,
+          time: new Date().toLocaleTimeString(),
+          isError: false,
+          pending: false,
+        }
+      ])
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { error?: string } } }
-      setHistory(prev => [...prev, {
-        command: toSend,
-        output: axiosErr.response?.data?.error || 'Erreur de communication',
-        cwd: currentCwd,
-        time: new Date().toLocaleTimeString(),
-        isError: true,
-      }])
+      setHistory(prev => [
+        ...prev.slice(0, -1),
+        {
+          command: toSend,
+          output: axiosErr.response?.data?.error || 'Erreur de communication',
+          cwd: currentCwd,
+          time: new Date().toLocaleTimeString(),
+          isError: true,
+          pending: false,
+        }
+      ])
     } finally {
       setLoading(false)
       setTimeout(() => inputRef.current?.focus(), 50)
@@ -191,15 +214,15 @@ export default function Console() {
           {history.slice().reverse().map((entry, i) => (
             <button
               key={i}
-              onClick={() => sendCommand(entry.command)}
+              onClick={() => !entry.pending && sendCommand(entry.command)}
               title={entry.command}
-              className="w-full text-left px-3 py-1.5 text-xs font-mono truncate"
+              className={`w-full text-left px-3 py-1.5 text-xs font-mono truncate ${entry.pending ? 'animate-pulse' : ''}`}
               style={{
-                color: entry.isError ? '#f87171' : '#a78bfa',
+                color: entry.isError ? '#f87171' : entry.pending ? '#f59e0b' : '#a78bfa',
                 borderBottom: '1px solid rgba(30,30,46,0.5)',
               }}
             >
-              {entry.command}
+              {entry.pending ? '⏳ ' : ''}{entry.command}
             </button>
           ))}
         </aside>
@@ -226,8 +249,8 @@ export default function Console() {
                   <span className="text-xs ml-auto shrink-0 opacity-30" style={{ color: '#64748b' }}>{entry.time}</span>
                 </div>
                 <pre
-                  className="mt-1 ml-4 text-xs whitespace-pre-wrap leading-relaxed"
-                  style={{ color: entry.isError ? '#f87171' : '#e2e8f0' }}
+                  className={`mt-1 ml-4 text-xs whitespace-pre-wrap leading-relaxed ${entry.pending ? 'animate-pulse' : ''}`}
+                  style={{ color: entry.isError ? '#f87171' : entry.pending ? '#6b7280' : '#e2e8f0' }}
                 >
                   {entry.output}
                 </pre>
