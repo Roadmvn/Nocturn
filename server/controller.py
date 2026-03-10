@@ -391,7 +391,7 @@ def index_redirect():
 
 if __name__ == "__main__":
     # SSL Let's Encrypt pour les agents (port 1234 doit être HTTPS)
-    # Le controller (port 5000) est derrière nginx, tourne en HTTP
+    # Le controller (port 5003) est derrière nginx, tourne en HTTP
     LE_CERT = "/etc/letsencrypt/live/nocturn.roadmvn.com/fullchain.pem"
     LE_KEY  = "/etc/letsencrypt/live/nocturn.roadmvn.com/privkey.pem"
 
@@ -419,11 +419,11 @@ if __name__ == "__main__":
     ).start()
     time.sleep(2)
 
-    print("🌐 Démarrage controller HTTP (port 5000 — derrière nginx)...")
+    print("🌐 Démarrage controller HTTP (port 5003 — derrière nginx)...")
     print("👉 https://nocturn.roadmvn.com")
     app.run(
         host="0.0.0.0",
-        port=5000,
+        port=5003,
         debug=False,
         use_reloader=False,
     )
