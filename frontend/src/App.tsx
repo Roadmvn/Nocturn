@@ -3,6 +3,7 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Console from './pages/Console'
 import Builder from './pages/Builder'
+import { TransitionProvider } from './context/TransitionContext'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem('nocturn_token')
@@ -12,19 +13,21 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/" element={
-          <PrivateRoute><Dashboard /></PrivateRoute>
-        } />
-        <Route path="/agent/:id" element={
-          <PrivateRoute><Console /></PrivateRoute>
-        } />
-        <Route path="/builder" element={
-          <PrivateRoute><Builder /></PrivateRoute>
-        } />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <TransitionProvider>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/" element={
+            <PrivateRoute><Dashboard /></PrivateRoute>
+          } />
+          <Route path="/agent/:id" element={
+            <PrivateRoute><Console /></PrivateRoute>
+          } />
+          <Route path="/builder" element={
+            <PrivateRoute><Builder /></PrivateRoute>
+          } />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </TransitionProvider>
     </BrowserRouter>
   )
 }
